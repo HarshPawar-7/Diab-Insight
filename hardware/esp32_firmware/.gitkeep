@@ -1,0 +1,16 @@
+# ESP32 Firmware Files
+
+This directory will contain Arduino sketches for the smart foot insole microcontroller.
+
+## Files to be created:
+
+- `main.ino` - Main firmware entry point
+- `sensors.h` - Sensor initialization & reading
+- `wifi_config.h` - WiFi & HTTPS setup
+- `api_client.h` - Backend API communication
+- `anomaly_detection.h` - Local edge computing
+- `OTA_update.h` - Over-the-Air update mechanism
+
+## Placeholder for future development.
+
+See parent directory README.md for specifications.

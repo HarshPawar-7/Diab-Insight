@@ -1,0 +1,20 @@
+# ML Model Artifacts Directory
+
+This directory contains trained ML models and preprocessing pipelines.
+
+## Files stored here after training:
+- `xgb_model_app.joblib` - XGBoost app model (13 non-invasive features)
+- `xgb_model_clinical.joblib` - XGBoost clinical model (22 features with labs)
+- `dfu_model_best.pth` - DFU detection pre-trained model
+- `preprocessor.joblib` - Feature preprocessing pipeline
+
+## Generate artifacts:
+```bash
+cd backend/ml
+python train_model_optimized.py    # Generates XGBoost models
+python train_dfu_model_optimized.py # Generates DFU model
+```
+
+All artifacts are referenced in `app/services/`:
+- `ml_predictor.py` loads XGBoost models
+- `dfu_classifier.py` loads DFU detection model

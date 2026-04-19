@@ -1,0 +1,111 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Models and Data
+*.pkl
+*.h5
+*.pickle
+*.joblib
+*.model
+*.pth
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Node modules (frontend)
+node_modules/
+dist/
+.nuxt/
+*.local
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Old/Legacy files
+*_old.*
+*_backup.*
+legacy/
+deprecated/
+
+# Test files that should be cleaned up
+test_*.py
+*_test.py
+
+# Image files (for cleanup)
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+
+# Keep important files:
+!backend/train_model_optimized.py
+!backend/train_dfu_model_optimized.py
+!backend/dfu_detection.py
+!backend/recommendation_engine.py
+!backend/app.py
+!backend/requirements.txt
+
+!diabetes_dataset.csv
+!DIABINSIGHT_Brief.pdf
+!README.md
