@@ -375,8 +375,11 @@ export default function Dashboard() {
                     </p>
 
                     {/* Explore Feature Button */}
-                    <button className="text-white font-semibold hover:text-teal-100 transition flex items-center gap-2">
-                      Explore Feature →
+                    <button 
+                      onClick={() => navigate('/dfu-scan')}
+                      className="text-white font-semibold hover:text-teal-100 transition flex items-center gap-2"
+                    >
+                      Start Scan →
                     </button>
                   </div>
                 </div>

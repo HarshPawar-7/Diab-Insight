@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import DailyCheckin from './pages/DailyCheckin';
 import Results from './pages/Results';
+import DFUScan from './pages/DFUScan';
 
 function App() {
   return (
@@ -38,6 +39,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Results />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dfu-scan"
+            element={
+              <ProtectedRoute>
+                <DFUScan />
               </ProtectedRoute>
             }
           />

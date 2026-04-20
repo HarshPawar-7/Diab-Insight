@@ -50,15 +50,18 @@ export const getPredictionHistory = (userId) => apiClient.get(`/predict/history/
 // Recommendations endpoint
 export const getRecommendations = (userId) => apiClient.get(`/recommendations/${userId}`);
 
-// DFU scan endpoint
+// DFU scan endpoints
 export const uploadDFUScan = (userId, imageFile) => {
   const formData = new FormData();
-  formData.append('user_id', userId);
   formData.append('file', imageFile);
-  return apiClient.post('/dfu/scan', formData, {
+  return apiClient.post(`/dfu/scan?user_id=${userId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
+
+export const getDFUScanHistory = (userId) => apiClient.get(`/dfu/history/${userId}`);
+
+export const getDFUScanDetails = (scanId) => apiClient.get(`/dfu/scan/${scanId}`);
 
 // Insole reading endpoint
 export const submitInsoleReading = (data) => apiClient.post('/insole/reading', data);
