@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import DashboardProject from '../assets/DashboardProject.png';
+import HeroVideo from '../assets/HeroVideo.mp4';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -79,8 +80,18 @@ export default function Landing() {
                 Get Started
               </button>
               <button
-                className="bg-white border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:border-gray-400 transition font-semibold text-lg"
+                onClick={() => {
+                  const el = document.getElementById('demo-video');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                    el.play().catch(e => console.error("Playback failed:", e));
+                  }
+                }}
+                className="bg-white border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:border-gray-400 transition flex items-center gap-2 font-semibold text-lg"
               >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" fillRule="evenodd" />
+                </svg>
                 View Demo
               </button>
             </div>
@@ -94,6 +105,20 @@ export default function Landing() {
               className="w-full h-auto object-cover rounded-2xl shadow-inner"
             />
           </div>
+        </div>
+
+        {/* Demo Video Section */}
+        <div className="mt-20 w-full max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white ring-1 ring-gray-200">
+          <video 
+            id="demo-video"
+            src={HeroVideo}
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            controls={false}
+            className="w-full h-auto object-cover"
+          />
         </div>
 
         {/* Advanced Predictive Capabilities Section */}
