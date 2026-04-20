@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import DashboardProject from '../assets/DashboardProject.png';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -86,16 +87,17 @@ export default function Landing() {
           </div>
 
           {/* Right - App Mockup Image */}
-          <div className="bg-gray-900 rounded-3xl p-6 shadow-2xl h-96 flex items-center justify-center">
-            <div className="text-center text-gray-400">
-              <div className="text-6xl mb-4">📱</div>
-              <p>App Preview</p>
-            </div>
+          <div className="bg-white rounded-3xl p-2 shadow-2xl border-4 border-indigo-50 lg:-rotate-2 hover:rotate-0 transition-transform duration-500">
+            <img 
+              src={DashboardProject} 
+              alt="Dashboard Preview" 
+              className="w-full h-auto object-cover rounded-2xl shadow-inner"
+            />
           </div>
         </div>
 
         {/* Advanced Predictive Capabilities Section */}
-        <div className="mb-20 py-12">
+        <div className="mb-20 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
             Advanced Predictive Capabilities
           </h2>
@@ -106,20 +108,26 @@ export default function Landing() {
           {/* Features Grid */}
           <div className="grid lg:grid-cols-3 gap-8">
             {/* 7-Day Behavioral Tracking */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-lg transition">
-              <div className="bg-gray-100 h-48 rounded-lg mb-6 flex items-center justify-center text-4xl font-bold text-gray-400">
-                {/* Placeholder for image */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition overflow-hidden flex flex-col h-full justify-between">
+              <div className="h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?auto=format&fit=crop&w=800&q=80" 
+                  alt="Activity Tracking" 
+                  className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
+                />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                7-Day Behavioral Tracking
-              </h3>
-              <p className="text-gray-600">
-                Daily monitoring of lifestyle factors: diet, physical activity, sleep, stress levels, and hydration to build a comprehensive health profile.
-              </p>
+              <div className="p-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  7-Day Behavioral Tracking
+                </h3>
+                <p className="text-gray-600">
+                  Daily monitoring of lifestyle factors: diet, physical activity, sleep, stress levels, and hydration to build a comprehensive health profile.
+                </p>
+              </div>
             </div>
 
             {/* Computer Vision DFU */}
-            <div className="bg-teal-700 rounded-2xl p-8 shadow-lg text-white">
+            <div className="bg-teal-700 rounded-2xl p-8 shadow-lg text-white flex flex-col h-full justify-between">
               <div className="flex justify-end mb-6">
                 <div className="bg-teal-600 rounded-lg p-4">
                   <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
@@ -139,16 +147,22 @@ export default function Landing() {
             </div>
 
             {/* IoT Smart Insole */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-lg transition">
-              <div className="bg-gray-100 h-48 rounded-lg mb-6 flex items-center justify-center text-4xl">
-                {/* Placeholder for insole image */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition overflow-hidden flex flex-col h-full justify-between">
+              <div className="h-56 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80" 
+                  alt="Smart Footwear" 
+                  className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700"
+                />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                IoT Smart Insole
-              </h3>
-              <p className="text-gray-600">
-                Real-time monitoring of foot pressure, temperature, and moisture. Detect anomalies early with wearable sensors for continuous protection.
-              </p>
+              <div className="p-8 flex-1">
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  IoT Smart Insole
+                </h3>
+                <p className="text-gray-600">
+                  Real-time monitoring of foot pressure, temperature, and moisture. Detect anomalies early with wearable sensors for continuous protection.
+                </p>
+              </div>
             </div>
           </div>
         </div>

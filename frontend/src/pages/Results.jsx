@@ -34,7 +34,7 @@ export default function Results() {
         // Only fetch recommendations if we have predictions
         try {
           const recResponse = await getRecommendations(user.user_id);
-          setRecommendations(recResponse.data.recommendations || []);
+          setRecommendations(recResponse.data || { nutrition_plan: [], lifestyle_goals: [] });
         } catch (recErr) {
           console.log('Could not fetch recommendations:', recErr.response?.data?.detail);
         }
@@ -94,8 +94,8 @@ export default function Results() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-5 lg:p-6 text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => navigate('/daily-checkin')}
@@ -110,8 +110,8 @@ export default function Results() {
 
   if (predictions.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-5 lg:p-6 text-center">
           <h2 className="text-2xl font-bold mb-4">No Results Yet</h2>
           <p className="text-gray-600 mb-6">Complete 7 days of daily checkins to get your prediction</p>
           <button
@@ -130,18 +130,18 @@ export default function Results() {
   const riskLabel = getRiskLabel(pred.risk_score);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
+      <div className="w-full max-w-7xl mx-auto px-4"><div className="grid lg:grid-cols-2 gap-4 sm:p-5 lg:p-6 items-start"><div>
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-5 lg:p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Diabetes Risk Assessment</h1>
           <p className="text-gray-600">
-            Assessment Date: {new Date(pred.created_at).toLocaleDateString()}
+            Assessment Date: {pred.predicted_at ? new Date(pred.predicted_at).toLocaleDateString() : (pred.created_at ? new Date(pred.created_at).toLocaleDateString() : 'Recent')}
           </p>
         </div>
 
         {/* Risk Score Card */}
-        <div className={`bg-${riskColor}-50 border-2 border-${riskColor}-300 rounded-lg shadow-lg p-8 mb-6`}>
+        <div className={`bg-${riskColor}-50 border-2 border-${riskColor}-300 rounded-lg shadow-lg p-4 sm:p-5 lg:p-6 mb-6`}>
           <div className="text-center">
             <p className={`text-${riskColor}-700 text-sm font-semibold mb-2 uppercase`}>Risk Level</p>
             <h2 className={`text-5xl font-bold text-${riskColor}-600 mb-2`}>
@@ -158,7 +158,7 @@ export default function Results() {
         </div>
 
         {/* Prediction Details */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:gap-6 mb-6">
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Prediction Details</h3>
             <div className="space-y-3">
@@ -193,35 +193,46 @@ export default function Results() {
           </div>
         </div>
 
-        {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Personalized Recommendations</h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              {recommendations.map((rec, index) => (
-                <div
-                  key={index}
-                  className="border-l-4 border-indigo-500 pl-4 py-2"
-                >
-                  <h4 className="font-semibold text-gray-900 mb-2">{rec.title}</h4>
-                  <p className="text-gray-600 text-sm mb-2">{rec.description}</p>
-                  <p className="text-xs text-gray-500">
-                    <span className={`inline-block px-2 py-1 rounded-full text-white ${
-                      rec.priority === 'high' ? 'bg-red-500' :
-                      rec.priority === 'medium' ? 'bg-yellow-500' :
-                      'bg-green-500'
-                    }`}>
-                      {rec.priority.charAt(0).toUpperCase() + rec.priority.slice(1)} Priority
-                    </span>
-                  </p>
+        </div>
+
+        {/* Column 2: Phase 2 Recommendations */}
+        <div className="flex flex-col gap-4 md:gap-4 md:gap-6">
+        {recommendations && (recommendations.nutrition_plan?.length > 0 || recommendations.lifestyle_goals?.length > 0) && (
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-5 lg:p-6 mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">Personalized Nutrition & Lifestyle Plan</h3>
+            
+            {recommendations.nutrition_plan?.length > 0 && (
+              <div className="mb-8">
+                <h4 className="text-xl font-semibold text-green-700 mb-4">🥗 Recommended Foods</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {recommendations.nutrition_plan.map((item, index) => (
+                    <div key={index} className="border-l-4 border-green-500 bg-green-50 p-4 rounded">
+                      <h5 className="font-bold text-gray-900 text-lg">{item.food}</h5>
+                      <p className="text-gray-700 text-sm mt-1">{item.reason}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {recommendations.lifestyle_goals?.length > 0 && (
+              <div>
+                <h4 className="text-xl font-semibold text-blue-700 mb-4">🏃‍♂️ Lifestyle Goals</h4>
+                <ul className="space-y-3">
+                  {recommendations.lifestyle_goals.map((goal, index) => (
+                    <li key={index} className="flex items-start bg-blue-50 p-4 rounded border-l-4 border-blue-500">
+                      <span className="text-blue-600 mr-3 text-lg">✦</span>
+                      <span className="text-gray-800">{goal}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="grid md:grid-cols-3 gap-4 flex-wrap">
+        {/* Action Buttons underneath phase 2 or combined */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 flex-wrap w-full mt-auto">
           <button
             onClick={handleRestartChallenge}
             disabled={restartLoading}
@@ -242,6 +253,8 @@ export default function Results() {
             Back Home
           </button>
         </div>
+        </div>
+      </div>
       </div>
     </div>
   );

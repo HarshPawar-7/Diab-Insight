@@ -1,398 +1,180 @@
 """
-Recommendation Engine Service
-Generates personalized lifestyle recommendations based on risk score and identified deficiencies
+Recommendation Engine Service (Phase 2)
+Generates personalized lifestyle and nutrition recommendations based on Phase 1 risk score and deficits.
 """
 
-from typing import Dict, List, Tuple
-import json
+import pandas as pd
+import os
+from typing import Dict, List
 
-class RecommendationEngine:
-    """
-    Rule-based recommendation system
-    Maps risk scores and deficiencies to personalized recommendations
-    """
-    
-    def __init__(self):
-        """Initialize with recommendation database"""
-        self.recommendation_db = self._build_recommendation_db()
-    
-    def _build_recommendation_db(self) -> Dict:
-        """
-        Build the recommendation database
-        Maps deficiency + risk level → specific recommendations
-        """
+class DiabInsightRecommender:
+    def __init__(self, food_dataset_path: str = None):
+        # Default to the dataset in the data folder if none provided
+        if food_dataset_path is None:
+            # Assumes running from backend root or main app
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            food_dataset_path = os.path.join(base_dir, 'data', 'pred_food.csv')
+            
+        try:
+            self.foods = pd.read_csv(food_dataset_path)
+            # Clean up column names to prevent trailing/leading whitespace issues
+            self.foods.columns = self.foods.columns.str.strip()
+        except Exception as e:
+            print(f"Warning: Could not load food dataset from {food_dataset_path}. Error: {e}")
+            # Mock empty DataFrame with required columns if file missing
+            self.foods = pd.DataFrame(columns=[
+                'Food Name', 'Glycemic Index', 'Calories', 'Carbohydrates', 
+                'Fiber Content', 'Suitable for Diabetes', 'Suitable for Blood Pressure', 
+                'Sodium Content'
+            ])
+            
+        self.lifestyle_matrix = self._build_lifestyle_matrix()
+        
+    def _build_lifestyle_matrix(self) -> Dict:
+        """Matrix mapping identified deficits to actionable lifestyle recommendations"""
         return {
             'low_activity': {
-                'category': 'Exercise',
-                'priority_low': 'Start light activity (15-20 min/day)',
-                'priority_moderate': 'Increase to 150 min/week moderate exercise',
-                'priority_high': 'Urgent: 150+ min/week with strength training',
-                'action_items_low': [
-                    'Take 10-minute walks daily',
-                    'Use stairs instead of elevators',
-                    'Stretch for 5 minutes each morning',
-                    'Try light yoga or tai chi'
-                ],
-                'action_items_moderate': [
-                    'Brisk walking 30 minutes daily',
-                    'Join a fitness class',
-                    'Add strength training 2x/week',
-                    'Use fitness tracker to monitor progress'
-                ],
-                'action_items_high': [
-                    'Start supervised fitness program',
-                    'Combine cardio + strength training',
-                    'Daily 30-45 minute sessions',
-                    'Work with fitness trainer or coach'
-                ]
+                'high_risk': "Start with 15 minutes of brisk walking after meals. Post-meal walks significantly lower postprandial blood glucose spikes.",
+                'low_risk': "Aim for 150 minutes of moderate aerobic activity this week."
             },
             'poor_diet': {
-                'category': 'Diet',
-                'priority_low': 'Improve diet quality gradually',
-                'priority_moderate': 'Reduce simple carbs and sugar',
-                'priority_high': 'Strict dietary modifications required',
-                'action_items_low': [
-                    'Add one fruit/vegetable per meal',
-                    'Reduce sugary drinks',
-                    'Choose whole grains when possible',
-                    'Plan meals ahead'
-                ],
-                'action_items_moderate': [
-                    'Replace white rice/bread with brown alternatives',
-                    'Eliminate sugary drinks completely',
-                    'Reduce processed food intake',
-                    'Consult nutritionist for meal planning',
-                    'Track daily food intake'
-                ],
-                'action_items_high': [
-                    'Follow diabetes-specific diet plan',
-                    'Work with registered dietitian',
-                    'Eliminate added sugars entirely',
-                    'Reduce refined carbohydrates to < 40g/day',
-                    'Monitor blood glucose response to foods'
-                ]
+                'high_risk': "Replace sugary beverages with infused water or unsweetened tea. Stick strictly to the recommended foods (GI < 55).",
+                'low_risk': "Focus on complex carbs and keep an eye on portion sizes. Occasional treats are okay, but prioritize fiber."
             },
             'poor_sleep': {
-                'category': 'Lifestyle',
-                'priority_low': 'Improve sleep consistency',
-                'priority_moderate': 'Aim for 7-8 hours nightly',
-                'priority_high': 'Strict sleep schedule essential',
-                'action_items_low': [
-                    'Set consistent bedtime',
-                    'Reduce screen time before bed',
-                    'Try relaxation techniques',
-                    'Maintain cool, dark bedroom'
-                ],
-                'action_items_moderate': [
-                    'Sleep 7-8 hours nightly',
-                    'No screens 1 hour before bed',
-                    'Limit caffeine after 2 PM',
-                    'Exercise during day (not evening)',
-                    'Practice meditation or deep breathing'
-                ],
-                'action_items_high': [
-                    'Strict sleep schedule: same time daily',
-                    'Sleep study evaluation if insomnia',
-                    'No electronics in bedroom',
-                    'Consider sleep specialist consultation',
-                    'May require sleep medications'
-                ]
+                'high_risk': "Cortisol (stress hormone) directly increases blood glucose. Prioritize 7-8 hours of sleep and consider 10 minutes of mindfulness to stabilize morning fasting glucose levels.",
+                'low_risk': "Try to maintain a consistent sleep schedule of 7-8 hours for optimal metabolic health."
             },
-            'high_screen_time': {
-                'category': 'Lifestyle',
-                'priority_low': 'Gradually reduce screen time',
-                'priority_moderate': 'Limit to < 6 hours/day',
-                'priority_high': 'Reduce significantly (< 4 hours/day)',
-                'action_items_low': [
-                    'Take 10-min break every hour',
-                    'Dim screen brightness',
-                    'Use blue light filter',
-                    'Alternate activities'
-                ],
-                'action_items_moderate': [
-                    'Aim for max 6 hours/day',
-                    'No screens during meals',
-                    'Replace 1 hour screen time with activity',
-                    'Set daily screen time limits'
-                ],
-                'action_items_high': [
-                    'Reduce to 4 hours/day maximum',
-                    'Delete unnecessary apps',
-                    'Use app limiters',
-                    'Establish screen-free times (6 PM - 9 PM)',
-                    'Find hobby to replace screen time'
-                ]
+            'high_bp': {
+                'high_risk': "Strictly monitor your sodium intake (< 140mg/serving) and choose foods optimized for blood pressure control.",
+                'low_risk': "Keep an eye on salty snacks and ensure you are getting enough potassium-rich foods."
             },
-            'high_alcohol': {
-                'category': 'Diet',
-                'priority_low': 'Moderate alcohol consumption',
-                'priority_moderate': 'Limit to 1-2 drinks/week',
-                'priority_high': 'Eliminate alcohol entirely',
-                'action_items_low': [
-                    'Reduce drinks per week by 25%',
-                    'Switch to lower-alcohol options',
-                    'Alternate with non-alcoholic drinks'
-                ],
-                'action_items_moderate': [
-                    'Limit to < 2 drinks per week',
-                    'Avoid binge drinking',
-                    'Track alcohol consumption',
-                    'Replace with healthier beverages'
-                ],
-                'action_items_high': [
-                    'Eliminate all alcohol',
-                    'Join support group if needed',
-                    'Identify and avoid triggers',
-                    'Seek counseling if alcohol dependent'
-                ]
-            },
-            'smoker': {
-                'category': 'Lifestyle',
-                'priority_moderate': 'Quit smoking',
-                'priority_high': 'Urgent: Quit smoking now',
-                'action_items_moderate': [
-                    'Set quit date within 2 weeks',
-                    'Use nicotine replacement therapy',
-                    'Join smoking cessation program',
-                    'Consult physician for medications'
-                ],
-                'action_items_high': [
-                    'Quit smoking immediately',
-                    'Prescription: Varenicline or Bupropion',
-                    'Daily support group attendance',
-                    'Medical supervision required'
-                ]
-            },
-            'high_bmi': {
-                'category': 'Exercise + Diet',
-                'priority_moderate': 'Weight loss through diet + exercise',
-                'priority_high': 'Aggressive weight loss program',
-                'action_items_moderate': [
-                    'Target: 5-10% weight loss (3-6 months)',
-                    'Combine reduced calories + exercise',
-                    'Monitor weight weekly',
-                    'Work with nutritionist'
-                ],
-                'action_items_high': [
-                    'Target: 10-15% weight loss',
-                    'Supervised diet program (low-carb)',
-                    'Daily exercise 300 min/week',
-                    'Medical weight loss clinic',
-                    'Consider GLP-1 agonist medications'
-                ]
-            },
-            'family_history': {
-                'category': 'Medical',
-                'priority_moderate': 'Regular screening recommended',
-                'priority_high': 'Frequent monitoring essential',
-                'action_items_moderate': [
-                    'HbA1c test every 3-6 months',
-                    'Annual diabetes screening',
-                    'Track blood glucose at home',
-                    'Regular physician visits'
-                ],
-                'action_items_high': [
-                    'Monthly physician check-ins',
-                    'Continuous glucose monitor (optional)',
-                    'Specialist care: endocrinologist',
-                    'Intensive glucose management'
-                ]
+            'high_stress': {
+                'high_risk': "High stress levels spike insulin resistance. Incorporate 5-10 minutes of deep breathing exercises daily.",
+                'low_risk': "Manage daily stress through light activities and hobbies to prevent long-term metabolic strain."
             }
         }
-    
-    def generate_recommendations(self, 
-                                risk_score: float,
-                                features: Dict) -> Dict:
-        """
-        Generate personalized recommendations based on risk and features
+
+    def _determine_deficits(self, features: Dict) -> List[str]:
+        """Map raw features to recognized deficit keys"""
+        deficits = []
+        if features.get('physical_activity_minutes_per_week', 150) < 150:
+            deficits.append('low_activity')
+        if features.get('diet_score', 10) < 5:
+            deficits.append('poor_diet')
+        if features.get('sleep_hours_per_day', 7) < 6.5:
+            deficits.append('poor_sleep')
+        if features.get('hypertension_history', False):
+            deficits.append('high_bp')
+        if features.get('stress_level', 1) > 3:
+            deficits.append('high_stress')
+        return deficits
+
+    def recommend_foods(self, risk_score: float, user_deficits: List[str]) -> List[Dict]:
+        """Uses pandas to filter and rank foods based on tiered risk constraints"""
+        if self.foods.empty:
+            return [{"food": "Water", "reason": "Always a healthy choice."}]
+            
+        recommendations = self.foods.copy()
         
-        Returns: {
-            recommendations: List[RecommendationItem],
-            deficiencies: List[str],
-            strengths: List[str],
-            priority_focus: str
-        }
-        """
+        # 1. Base Filtering based on Risk Score
+        if risk_score > 0.70:
+            # High Risk: Strict Diabetic Constraints
+            mask = recommendations['Suitable for Diabetes'] == 1
+            if mask.any(): recommendations = recommendations[mask]
+            
+            mask = recommendations['Glycemic Index'] < 55
+            if mask.any(): recommendations = recommendations[mask]
+            
+        elif risk_score > 0.40:
+            # Moderate Risk: Preventative Constraints
+            mask = recommendations['Glycemic Index'] < 65
+            if mask.any(): recommendations = recommendations[mask]
+            
+            # Ensure decent fiber to carb ratio, handle zero division
+            carb_mask = recommendations['Carbohydrates'] > 0
+            if carb_mask.any():
+                ratio_mask = (recommendations['Fiber Content'] / recommendations['Carbohydrates']) > 0.1
+                combined = ~carb_mask | ratio_mask
+                if combined.any(): recommendations = recommendations[combined]
+            
+        # 2. Deficit-Specific Filtering
+        if 'high_bp' in user_deficits:
+            mask = recommendations['Suitable for Blood Pressure'] == 1
+            if mask.any(): recommendations = recommendations[mask]
+            
+            mask = recommendations['Sodium Content'] < 140
+            if mask.any(): recommendations = recommendations[mask]
+            
+        if 'needs_weight_loss' in user_deficits:
+            recommendations = recommendations.sort_values(by='Calories', ascending=True)
+
+        # 3. Sort by Nutritional Value
+        # Drop duplicates to prevent the same food appearing multiple times
+        if 'Food Name' in recommendations.columns:
+            recommendations = recommendations.drop_duplicates(subset=['Food Name'])
+
+        # Lowest GI and Highest Fiber
+        recommendations = recommendations.sort_values(
+            by=['Glycemic Index', 'Fiber Content'], 
+            ascending=[True, False]
+        )
         
-        # Identify deficiencies
-        deficiencies = self._identify_deficiencies(features)
-        
-        # Identify strengths
-        strengths = self._identify_strengths(features)
-        
-        # Categorize risk
-        if risk_score < 0.35:
-            risk_category = 'Low'
-        elif risk_score < 0.65:
-            risk_category = 'Moderate'
+        # Take top 15 and sample 5 for variety (if enough foods exist), otherwise take what we have
+        if len(recommendations) > 5:
+            top_foods = recommendations.head(15).sample(5).to_dict('records')
         else:
-            risk_category = 'High'
+            top_foods = recommendations.to_dict('records')
         
-        # Generate recommendations based on deficiencies and risk
-        recommendations = []
-        for deficiency in deficiencies:
-            rec = self._get_recommendation(deficiency, risk_category)
-            if rec:
-                recommendations.append(rec)
+        # Format the output to exactly match the requested schema
+        nutrition_plan = []
+        for f in top_foods:
+            food_name = str(f.get('Food Name', 'Healthy Snack')).strip()
+            gi = int(f.get('Glycemic Index', 0))
+            reason = f'Low GI ({gi})'
+            
+            if f.get('Fiber Content', 0) > 3:
+                reason += ' and high fiber.'
+            elif f.get('Suitable for Blood Pressure', 0) == 1 and 'high_bp' in user_deficits:
+                reason += ' and manages blood pressure.'
+            else:
+                reason += ' and diabetes safe.'
+                
+            nutrition_plan.append({"food": food_name, "reason": reason})
+            
+        return nutrition_plan
+
+    def recommend_lifestyle(self, risk_score: float, user_deficits: List[str]) -> List[str]:
+        """Maps deficits to specific lifestyle advice strings"""
+        goals = []
+        risk_level = 'high_risk' if risk_score > 0.40 else 'low_risk'
         
-        # Add medical recommendations if at risk
-        if risk_category in ['Moderate', 'High']:
-            medical_rec = {
-                'category': 'Medical',
-                'priority': 'High' if risk_category == 'High' else 'Medium',
-                'title': 'Medical Consultation',
-                'description': 'Schedule appointment with physician for diabetes screening and monitoring',
-                'action_items': [
-                    'Schedule HbA1c and fasting glucose test',
-                    'Book appointment with physician',
-                    'Bring family history information',
-                    'Discuss medication options if needed'
-                ]
-            }
-            recommendations.append(medical_rec)
+        for deficit in user_deficits:
+            if deficit in self.lifestyle_matrix:
+                goals.append(self.lifestyle_matrix[deficit][risk_level])
+                
+        # Add a default goal if no specific deficits trigger
+        if not goals:
+            goals.append("Maintain your current healthy habits. Keep exercising and eating balanced meals.")
+            
+        return goals
+
+    def generate_recommendations(self, risk_score: float, features: Dict) -> Dict:
+        """Main pipeline combining food and lifestyle recommendations"""
+        deficits = self._determine_deficits(features)
         
-        # Determine priority focus
-        priority_focus = self._determine_priority_focus(deficiencies, risk_score)
+        nutrition_plan = self.recommendFoods(risk_score, deficits)
+        lifestyle_goals = self.recommendLifestyle(risk_score, deficits)
         
         return {
-            'risk_category': risk_category,
-            'risk_score': risk_score,
-            'recommendations': recommendations,
-            'deficiencies': deficiencies,
-            'strengths': strengths,
-            'total_recommendations': len(recommendations),
-            'priority_focus': priority_focus,
-            'message': self._get_motivational_message(risk_category, deficiencies)
+            "nutrition_plan": nutrition_plan,
+            "lifestyle_goals": lifestyle_goals
         }
-    
-    def _identify_deficiencies(self, features: Dict) -> List[str]:
-        """Identify lifestyle deficiencies from features"""
-        deficiencies = []
-        
-        if features.get('physical_activity_minutes_per_week', 0) < 150:
-            deficiencies.append('low_activity')
-        
-        if features.get('diet_score', 0) < 5:
-            deficiencies.append('poor_diet')
-        
-        if features.get('sleep_hours_per_day', 0) < 6.5:
-            deficiencies.append('poor_sleep')
-        
-        if features.get('screen_time_hours_per_day', 0) > 7:
-            deficiencies.append('high_screen_time')
-        
-        if features.get('alcohol_consumption_per_week', 0) > 2:
-            deficiencies.append('high_alcohol')
-        
-        if features.get('smoking_status') == 'Current':
-            deficiencies.append('smoker')
-        
-        if features.get('bmi', 0) > 30:
-            deficiencies.append('high_bmi')
-        
-        if features.get('family_history_diabetes'):
-            deficiencies.append('family_history')
-        
-        return deficiencies
-    
-    def _identify_strengths(self, features: Dict) -> List[str]:
-        """Identify positive lifestyle factors"""
-        strengths = []
-        
-        if features.get('physical_activity_minutes_per_week', 0) >= 150:
-            strengths.append('Regular physical activity')
-        
-        if features.get('diet_score', 0) >= 7:
-            strengths.append('Good diet quality')
-        
-        if features.get('sleep_hours_per_day', 0) >= 7:
-            strengths.append('Adequate sleep')
-        
-        if features.get('screen_time_hours_per_day', 0) < 5:
-            strengths.append('Low screen time')
-        
-        if features.get('smoking_status') == 'Never':
-            strengths.append('Non-smoker')
-        
-        if features.get('bmi', 0) < 25:
-            strengths.append('Healthy BMI')
-        
-        if not features.get('hypertension_history'):
-            strengths.append('No hypertension')
-        
-        return strengths
-    
-    def _get_recommendation(self, deficiency: str, risk_category: str) -> Dict:
-        """Get specific recommendation for a deficiency"""
-        db = self.recommendation_db.get(deficiency)
-        
-        if not db:
-            return None
-        
-        # Map risk category to priority
-        priority_key = f'priority_{risk_category.lower()}'
-        action_key = f'action_items_{risk_category.lower()}'
-        
-        # Fallback if risk level not in db
-        if priority_key not in db:
-            priority_key = 'priority_moderate'
-            action_key = 'action_items_moderate'
-        
-        return {
-            'category': db['category'],
-            'priority': risk_category,
-            'title': db.get(priority_key, ''),
-            'description': self._get_description(deficiency, risk_category),
-            'action_items': db.get(action_key, [])
-        }
-    
-    def _get_description(self, deficiency: str, risk_category: str) -> str:
-        """Get detailed description for recommendation"""
-        descriptions = {
-            'low_activity': 'Physical inactivity is a major risk factor for diabetes. Regular exercise improves insulin sensitivity.',
-            'poor_diet': 'High sugar and processed food intake increases diabetes risk. Whole foods and balanced nutrition are essential.',
-            'poor_sleep': 'Insufficient sleep disrupts glucose metabolism. 7-8 hours nightly is recommended.',
-            'high_screen_time': 'Excessive screen time leads to sedentary lifestyle and poor health outcomes.',
-            'high_alcohol': 'High alcohol consumption affects glucose levels and liver function.',
-            'smoker': 'Smoking significantly increases diabetes complications risk.',
-            'high_bmi': 'Overweight increases insulin resistance. Weight loss is crucial for risk reduction.',
-            'family_history': 'Genetic predisposition requires proactive monitoring and prevention.'
-        }
-        return descriptions.get(deficiency, '')
-    
-    def _determine_priority_focus(self, deficiencies: List[str], risk_score: float) -> str:
-        """Determine the single most important area to focus on"""
-        if not deficiencies:
-            return 'Maintain current healthy habits'
-        
-        # Prioritize by impact
-        priority_order = ['high_bmi', 'smoker', 'low_activity', 'poor_diet', 'family_history']
-        
-        for deficiency in priority_order:
-            if deficiency in deficiencies:
-                if deficiency == 'high_bmi':
-                    return 'Weight Loss Through Diet & Exercise'
-                elif deficiency == 'smoker':
-                    return 'Smoking Cessation'
-                elif deficiency == 'low_activity':
-                    return 'Increase Physical Activity'
-                elif deficiency == 'poor_diet':
-                    return 'Improve Diet Quality'
-                elif deficiency == 'family_history':
-                    return 'Regular Medical Monitoring'
-        
-        return 'Lifestyle Improvement'
-    
-    def _get_motivational_message(self, risk_category: str, deficiencies: List[str]) -> str:
-        """Generate encouraging message"""
-        if risk_category == 'Low':
-            return '🎉 Great job! Your diabetes risk is low. Keep up these healthy habits!'
-        elif risk_category == 'Moderate':
-            return '⚠️ You have moderate risk. Small lifestyle changes can make a big difference!'
-        else:
-            return '🚨 High risk detected. Immediate action is needed. You can reverse this trend!'
 
+    # Alias to snake_case for consistency
+    recommend_foods = recommendFoods = recommend_foods
+    recommend_lifestyle = recommendLifestyle = recommend_lifestyle
 
-def get_recommendation_engine():
-    """Factory function"""
-    return RecommendationEngine()
+def get_recommendation_engine() -> DiabInsightRecommender:
+    """Dependency injection provider"""
+    return DiabInsightRecommender()

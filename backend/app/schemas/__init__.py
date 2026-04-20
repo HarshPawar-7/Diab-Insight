@@ -165,23 +165,18 @@ class PredictionHistoryResponse(BaseModel):
     predictions: List[PredictionResponse]
     trend: Optional[str]
 
-# Recommendations Schema
-class RecommendationItem(BaseModel):
-    category: str
-    priority: str
-    title: str
-    description: str
-    action_items: List[str]
+# Recommendations Schema (Phase 2)
+class NutritionItem(BaseModel):
+    food: str
+    reason: str
 
-class RecommendationsResponse(BaseModel):
-    user_id: str
-    risk_category: str
+class Phase2RecommendationsResponse(BaseModel):
+    nutrition_plan: List[NutritionItem]
+    lifestyle_goals: List[str]
+
+class RecommendationRequest(BaseModel):
     risk_score: float
-    recommendations: List[RecommendationItem]
-    deficiencies: List[str]
-    strengths: List[str]
-    priority_focus: str
-    generated_at: datetime
+    deficits: List[str]
 
 # DFU Scan Schema
 class DFUScanRequest(BaseModel):
@@ -202,7 +197,10 @@ class DFUScanResponse(BaseModel):
     dfu_detected: bool
     prediction_label: DFUClassEnum
     confidence: float
-    affected_area: Optional[GradCAMResult]
+    affected_area: Optional[str]
+    severity_score: Optional[float] = None
+    clinical_assessment: Optional[str] = None
+    wagner_class: Optional[int] = None
     scanned_at: datetime
     model_version: str
     next_steps: List[str]

@@ -1,384 +1,503 @@
 """
-DFU (Diabetic Foot Ulcer) Detection Service
-Uses pre-trained models from DFUC2021 or HuggingFace
-Includes Grad-CAM localization
+DFU (Diabetic Foot Ulcer) Detection Service - Gemini Vision Clinical Specialist
+Pure Gemini-based detection with clinical specialist prompting
+Provides ulcer detection, classification, and severity scoring
+Advanced preprocessing for medical imaging optimization
 """
 
-from pathlib import Path
-from typing import Dict, Tuple, Optional
 import numpy as np
-from PIL import Image
+from pathlib import Path
+from typing import Dict, Optional, List
+from PIL import Image, ImageEnhance, ImageFilter
 import io
+import warnings
+import base64
+import os
+warnings.filterwarnings('ignore')
 
-class DFUDetectionService:
+# Gemini Vision API - Primary detection system
+try:
+    import google.generativeai as genai
+    HAS_GEMINI = True
+except ImportError:
+    HAS_GEMINI = False
+    print("❌ google-generativeai not installed. Install with: pip install google-generativeai")
+    print("   Gemini Vision is REQUIRED for DFU detection.")
+
+
+class DFUClassifier:
     """
-    DFU detection using pre-trained computer vision models
-    Supports multiple model sources:
-    1. DFUC2021 Challenge (recommended)
-    2. HuggingFace Hub
-    3. Local fine-tuned MobileNetV2
+    Diabetic Foot Ulcer Detection using Google Gemini Vision - Clinical Specialist Mode
+    
+    Strategy:
+    - Google Gemini Vision 1.5 as primary clinical specialist
+    - Advanced medical prompting for expert-level diagnosis
+    - Ulcer severity classification and scoring
+    - Medical-grade confidence and clinical assessment
+    
+    Diagnosis Categories:
+    - healthy: No ulcer detected
+    - early_dfu: Early stage diabetic foot ulcer (small, superficial)
+    - advanced_dfu: Advanced/severe diabetic foot ulcer (large, deep, infected)
+    
+    Severity Score: 0.0-1.0
+    - 0.0: Healthy
+    - 0.1-0.4: Early DFU (mild)
+    - 0.4-0.7: Moderate DFU
+    - 0.7-1.0: Advanced/Severe DFU
     """
     
-    SUPPORTED_FORMATS = {'jpg', 'jpeg', 'png', 'webp'}
-    MAX_IMAGE_SIZE_MB = 10
-    INPUT_SIZE = (224, 224)
-    
-    # DFU Classes
-    CLASSES = {
-        0: 'healthy',
-        1: 'early_dfu',
-        2: 'advanced_dfu'
+    LABEL_MAP = {
+        "healthy": "healthy",
+        "early_dfu": "early_dfu",
+        "advanced_dfu": "advanced_dfu"
     }
     
-    def __init__(self, model_path: str = None, use_huggingface: bool = False):
+    SEVERITY_LEVELS = {
+        "healthy": 0.0,
+        "early_dfu": 0.5,
+        "advanced_dfu": 1.0
+    }
+    
+    SUPPORTED_FORMATS = {'jpg', 'jpeg', 'png', 'webp', 'bmp'}
+    
+    def __init__(self, model_name: str = "gemini", device: str = None, use_ensemble: bool = True):
         """
-        Initialize DFU detection service
+        Initialize DFU classifier with Gemini Vision clinical specialist
         
         Args:
-            model_path: Path to local model or model ID from HuggingFace
-            use_huggingface: If True, load from HuggingFace Hub
+            model_name: Model identifier (ignored - uses Gemini only)
+            device: Device setting (ignored - Gemini is cloud-based)
+            use_ensemble: Always True - Gemini is the only model
         """
-        self.model = None
-        self.processor = None
-        self.device = 'cpu'
-        self.gradcam_enabled = True
+        self.model_name = "gemini-vision-clinical"
+        self.device = "cloud"
+        self.use_gemini = True
         
-        if use_huggingface:
-            self._load_huggingface_model(model_path)
-        elif model_path:
-            self._load_local_model(model_path)
-        else:
-            self._load_local_model()
-    
-    def _load_huggingface_model(self, model_id: str = None):
-        """
-        Load DFU model from HuggingFace
-        Example: "trained-models/dfu-detector-efficient"
-        """
-        try:
-            from transformers import pipeline
-            
-            if model_id is None:
-                model_id = "trained-models/dfu-detection-efficientnet"
-            
-            self.model = pipeline(
-                "image-classification",
-                model=model_id,
-                device=0 if self.device == 'cuda' else -1
-            )
-            print(f"✅ DFU model loaded from HuggingFace: {model_id}")
+        self.gemini_model = None
+        self.current_model_name = None  # Track which model is actually working
         
-        except Exception as e:
-            print(f"❌ Error loading HuggingFace model: {e}")
-            self.model = None
+        print(f"🔧 Initializing DFU Classifier - Gemini Vision Clinical Specialist")
+        print(f"   Model: Gemini Cloud (Multimodal)")
+        print(f"   Mode: Clinical Expert Diagnosis with Severity Scoring")
+        
+        self._initialize_gemini()
     
-    def _load_local_model(self, model_path: str = None):
-        """
-        Load local DFU model (PyTorch or TensorFlow)
-        Default: backend/ml/artifacts/dfu_model_best.pth
-        """
+    def _initialize_gemini(self):
+        """Initialize Gemini Vision API as clinical specialist"""
+        if not HAS_GEMINI:
+            print(f"❌ google-generativeai required. Install with: pip install google-generativeai")
+            return
+        
         try:
-            if model_path is None:
-                model_path = Path(__file__).parent.parent.parent / "ml" / "artifacts" / "dfu_model_best.pth"
-            
-            if not Path(model_path).exists():
-                print(f"⚠️ DFU model not found at {model_path}")
-                self.model = None
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                print(f"❌ GEMINI_API_KEY environment variable not set")
+                print(f"   Add GEMINI_API_KEY to your .env file")
                 return
             
-            # Try PyTorch first
-            try:
-                import torch
-                self.model = torch.load(model_path, map_location=self.device)
-                self.model.eval()
-                print(f"✅ DFU model loaded (PyTorch): {model_path}")
-            except:
-                # Fallback: TensorFlow
-                import tensorflow as tf
-                self.model = tf.keras.models.load_model(model_path)
-                print(f"✅ DFU model loaded (TensorFlow): {model_path}")
-        
+            genai.configure(api_key=api_key)
+            # Try latest models first - they all support multimodal vision
+            models_to_try = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-pro-latest", "gemini-flash-latest"]
+            
+            for model_name in models_to_try:
+                try:
+                    self.gemini_model = genai.GenerativeModel(model_name)
+                    print(f"✅ Gemini initialized with: {model_name}")
+                    print(f"   Ready for clinical DFU diagnosis (multimodal vision enabled)")
+                    self.current_model_name = model_name
+                    return
+                except Exception as model_err:
+                    print(f"   ⚠️  {model_name} not available, trying next...")
+                    continue
+            
+            print(f"❌ No suitable Gemini models available")
+            self.gemini_model = None
+            
         except Exception as e:
-            print(f"❌ Error loading local DFU model: {e}")
-            self.model = None
+            print(f"❌ Failed to initialize Gemini: {e}")
     
-    def validate_image(self, image: Image.Image) -> Tuple[bool, str]:
-        """Validate image format, size, and quality"""
-        try:
-            # Check format
-            if image.format and image.format.lower() not in self.SUPPORTED_FORMATS:
-                return False, f"Unsupported format: {image.format}"
-            
-            # Check size
-            if image.size[0] < 100 or image.size[1] < 100:
-                return False, "Image too small (min 100x100)"
-            
-            # Check mode (convert RGBA to RGB)
-            if image.mode not in ['RGB', 'L']:
-                image = image.convert('RGB')
-            
-            return True, "Image valid"
-        
-        except Exception as e:
-            return False, str(e)
-    
-    def preprocess_image(self, image: Image.Image) -> np.ndarray:
+    def preprocess_image(self, image_input) -> Image.Image:
         """
-        Preprocess image for model inference
-        - Resize to INPUT_SIZE
-        - Convert to RGB
-        - Normalize
+        Preprocess image with medical imaging optimizations
+        
+        Optimizations for DFU detection:
+        - Resize to standard medical dimensions
+        - Enhance contrast for ulcer boundary visibility
+        - Apply brightness adjustment
+        - Light sharpening for edge enhancement
+        - Normalize for Gemini Vision input
+        
+        Args:
+            image_input: PIL Image, numpy array, file path, or bytes
+            
+        Returns:
+            PIL Image (RGB, optimized for medical analysis)
         """
         try:
+            # Load image
+            if isinstance(image_input, str):
+                img = Image.open(image_input)
+            elif isinstance(image_input, bytes):
+                img = Image.open(io.BytesIO(image_input))
+            elif isinstance(image_input, np.ndarray):
+                img = Image.fromarray(image_input.astype(np.uint8))
+            else:
+                img = image_input
+            
             # Convert to RGB if needed
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
             
-            # Resize
-            image = image.resize(self.INPUT_SIZE, Image.Resampling.LANCZOS)
+            # Resize to standard dimension (maintain aspect ratio with padding if needed)
+            # Standard is 1024x1024 for Gemini Vision optimal analysis
+            img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
             
-            # Convert to array
-            img_array = np.array(image, dtype=np.float32)
+            # MEDICAL IMAGE OPTIMIZATION: Enhance contrast for better DFU visibility
+            # Critical for detecting subtle ulcer characteristics
+            enhancer = ImageEnhance.Contrast(img)
+            img = enhancer.enhance(1.6)  # Increase contrast by 60%
             
-            # Normalize (ImageNet normalization)
-            img_array = img_array / 255.0
-            mean = np.array([0.485, 0.456, 0.406])
-            std = np.array([0.229, 0.224, 0.225])
-            img_array = (img_array - mean) / std
+            # Enhance brightness for better visibility
+            brightness_enhancer = ImageEnhance.Brightness(img)
+            img = brightness_enhancer.enhance(1.15)  # 15% brightness boost
             
-            return img_array
+            # Enhance color saturation to highlight skin variations
+            color_enhancer = ImageEnhance.Color(img)
+            img = color_enhancer.enhance(1.2)  # 20% saturation increase
+            
+            # Apply light sharpening to enhance edges (ulcer boundaries)
+            img = img.filter(ImageFilter.SHARPEN)
+            
+            return img
         
         except Exception as e:
-            print(f"❌ Error preprocessing image: {e}")
-            return None
+            print(f"⚠️  Preprocessing failed: {e}. Using original image.")
+            if isinstance(image_input, Image.Image):
+                return image_input
+            else:
+                return Image.new('RGB', (512, 512))
     
-    def detect(self, image: Image.Image) -> Dict:
+    def predict(self, image_input) -> Dict:
         """
-        Detect DFU in foot image
-        Returns: {
-            dfu_detected: bool,
-            prediction_label: str,
-            confidence: float,
-            affected_area: {x, y, width, height, severity} (if detected),
-            next_steps: List[str]
-        }
+        Diagnose DFU status using Gemini Vision clinical specialist
+        
+        Strategy:
+        1. Preprocess image with medical imaging optimizations
+        2. Send to Gemini with clinical specialist prompt
+        3. Parse medical diagnosis with severity scoring
+        4. Return comprehensive clinical assessment
+        
+        Args:
+            image_input: PIL Image, numpy array, file path, or bytes
+            
+        Returns:
+            {
+                'prediction_label': 'healthy' | 'early_dfu' | 'advanced_dfu',
+                'confidence': 0.0-1.0,
+                'severity_score': 0.0-1.0,  (NEW: Ulcer severity rating)
+                'dfu_detected': bool,
+                'clinical_assessment': str,  (NEW: Clinical notes)
+                'probabilities': {...},
+                'model_version': 'gemini_clinical_v1.0',
+                'affected_area': str  (NEW: Affected area description)
+            }
         """
-        if self.model is None:
-            return self._fallback_detection(image)
+        if not self.gemini_model:
+            return {
+                'error': 'Gemini model not initialized',
+                'prediction_label': 'healthy',
+                'confidence': 0.0,
+                'severity_score': 0.0,
+                'dfu_detected': False
+            }
         
         try:
-            # Validate
-            valid, msg = self.validate_image(image)
-            if not valid:
+            # Preprocess with medical imaging optimizations
+            image = self.preprocess_image(image_input)
+            
+            # Get Gemini diagnosis with clinical specialist prompting
+            diagnosis_result = self._get_gemini_clinical_diagnosis(image)
+            
+            # Handle error responses
+            if diagnosis_result and 'error' in diagnosis_result:
+                return diagnosis_result
+            
+            if not diagnosis_result:
+                raise Exception("Gemini diagnosis failed")
+            
+            return diagnosis_result
+        
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"❌ Prediction failed: {e}")
+            
+            # Check if it's a quota error
+            error_msg = str(e)
+            if "429" in error_msg or "quota" in error_msg.lower():
                 return {
-                    'error': msg,
-                    'dfu_detected': False,
-                    'confidence': 0.0
+                    'error': 'quota_limit',
+                    'message': 'API quota exceeded. Please try again in a moment or upgrade your plan.',
+                    'prediction_label': 'healthy',
+                    'confidence': 0.0,
+                    'severity_score': 0.0,
+                    'dfu_detected': False
                 }
             
-            # Preprocess
-            img_processed = self.preprocess_image(image)
-            if img_processed is None:
-                return {'error': 'Failed to preprocess image', 'dfu_detected': False}
-            
-            # Inference
-            predictions = self._run_inference(img_processed)
-            
-            # Process results
-            result = self._process_predictions(predictions, image)
-            
-            # Generate Grad-CAM if DFU detected
-            if result['dfu_detected'] and self.gradcam_enabled:
-                gradcam_result = self._generate_gradcam(img_processed, predictions)
-                result['affected_area'] = gradcam_result
-            
-            return result
-        
-        except Exception as e:
-            print(f"❌ DFU Detection error: {e}")
-            return {'error': str(e), 'dfu_detected': False}
+            return {
+                'error': str(e),
+                'prediction_label': 'healthy',
+                'confidence': 0.0,
+                'severity_score': 0.0,
+                'dfu_detected': False
+            }
     
-    def _run_inference(self, image_array: np.ndarray) -> Dict:
+    def _get_gemini_clinical_diagnosis(self, image: Image.Image) -> Dict:
         """
-        Run model inference
-        Handles both PyTorch and TensorFlow models
+        Get comprehensive DFU diagnosis from Gemini as clinical specialist
+        
+        Returns:
+            Complete diagnosis with severity and clinical assessment
         """
         try:
-            import torch
+            # Convert PIL image to bytes for Gemini
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='PNG')
+            img_bytes = img_byte_arr.getvalue()
             
-            # PyTorch inference
-            image_tensor = torch.from_numpy(image_array).unsqueeze(0)
-            if image_array.ndim == 3:
-                image_tensor = image_tensor.permute(0, 3, 1, 2)
+            # CLINICAL SPECIALIST PROMPT
+            # Positioned as expert DFU diagnostician
+            clinical_prompt = """You are an expert clinical podiatrist and diabetic foot care specialist with 20+ years of experience diagnosing diabetic foot ulcers (DFU).
+
+TASK: Analyze this foot image and provide a comprehensive clinical assessment.
+
+DIAGNOSTIC FRAMEWORK:
+1. Examine for ulcer presence and characteristics (size, depth, borders, color, signs of infection)
+2. Assess surrounding tissue (erythema, edema, callus formation, maceration)
+3. Evaluate for neuropathic vs ischemic indicators
+4. Classify severity based on Wagner classification
+
+RESPONSE FORMAT - You MUST follow this EXACTLY:
+
+DIAGNOSIS: [healthy/early_dfu/advanced_dfu]
+CONFIDENCE: [0.0-1.0 - your diagnostic confidence based on clinical evidence]
+SEVERITY_SCORE: [0.0-1.0 - ulcer severity where 0=healthy, 1=worst possible]
+AFFECTED_AREA: [specific anatomical location if ulcer detected, otherwise "N/A"]
+CLINICAL_ASSESSMENT: [Brief clinical findings and observations]
+WAGNER_CLASS: [0-5 if DFU detected, N/A if healthy]
+RISK_INDICATORS: [comma-separated list of concerning findings if any]
+
+DIAGNOSTIC CRITERIA:
+- HEALTHY: No visible ulceration, normal skin appearance, no concerning signs
+- EARLY_DFU: Small (<2cm), superficial ulcer, good margin definition, minimal surrounding inflammation, low infection signs
+- ADVANCED_DFU: Large (>2cm), deep ulcer, poor margin definition, significant surrounding inflammation, signs of infection, or wet gangrene
+
+Be conservative in diagnosis - if you see any ulceration, classify as at least early_dfu.
+Focus on clinical accuracy and patient safety."""
+
+            # Call Gemini Vision API with image
+            print(f"🔬 Requesting Gemini clinical specialist diagnosis...")
+            print(f"   Using model: {self.current_model_name}")
             
-            with torch.no_grad():
-                logits = self.model(image_tensor)
-                probabilities = torch.softmax(logits, dim=1)
+            response = self.gemini_model.generate_content([
+                clinical_prompt,
+                {"mime_type": "image/png", "data": base64.b64encode(img_bytes).decode()}
+            ])
             
-            predictions = {
-                'logits': logits.cpu().numpy(),
-                'probabilities': probabilities.cpu().numpy()[0],
-                'class_idx': np.argmax(probabilities.cpu().numpy()[0])
-            }
+            response_text = response.text
+            print(f"📊 Gemini clinical response received ({len(response_text)} chars)")
+            
+            # Parse comprehensive diagnostic response
+            diagnosis = self._parse_clinical_response(response_text)
+            
+            print(f"✅ Clinical Diagnosis: {diagnosis['prediction_label']}")
+            print(f"   Confidence: {diagnosis['confidence']:.2%}")
+            print(f"   Severity: {diagnosis['severity_score']:.2f}/1.0")
+            if diagnosis['affected_area'] != "N/A":
+                print(f"   Location: {diagnosis['affected_area']}")
+            
+            return diagnosis
         
-        except:
-            # TensorFlow inference fallback
-            image_tensor = np.expand_dims(image_array, axis=0)
-            predictions = self.model.predict(image_tensor)
+        except Exception as e:
+            error_msg = str(e)
+            print(f"❌ Gemini clinical diagnosis failed: {error_msg}")
             
-            predictions_dict = {
-                'logits': predictions,
-                'probabilities': predictions[0],
-                'class_idx': np.argmax(predictions[0])
-            }
-            predictions = predictions_dict
-        
-        return predictions
+            # Handle API key errors (400)
+            if "400" in error_msg or "API_KEY_INVALID" in error_msg or "expired" in error_msg.lower():
+                print(f"⚠️  API KEY ERROR - Key is expired or invalid")
+                return {"error": "api_key_invalid", "message": "API key is expired or invalid. Please update the API key in .env file."}
+            
+            # Handle quota limit errors (429)
+            if "429" in error_msg or "quota" in error_msg.lower():
+                print(f"⚠️  API QUOTA LIMIT REACHED")
+                print(f"   Free tier limit: 5 requests/minute")
+                print(f"   Please wait before retrying or upgrade to paid plan")
+                return {"error": "quota_limit", "message": "API quota exceeded. Please try again in a moment or upgrade your plan."}
+            
+            # If 404 error, try fallback models
+            if "404" in error_msg and self.current_model_name:
+                print(f"⚠️  Model {self.current_model_name} not available, trying fallback...")
+                fallback_models = ["gemini-2.5-pro", "gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"]
+                
+                for fallback_model in fallback_models:
+                    if fallback_model == self.current_model_name:
+                        continue
+                    
+                    try:
+                        print(f"   Attempting fallback: {fallback_model}")
+                        self.gemini_model = genai.GenerativeModel(fallback_model)
+                        self.current_model_name = fallback_model
+                        
+                        # Retry with fallback model
+                        response = self.gemini_model.generate_content([
+                            clinical_prompt,
+                            {"mime_type": "image/png", "data": base64.b64encode(img_bytes).decode()}
+                        ])
+                        
+                        response_text = response.text
+                        diagnosis = self._parse_clinical_response(response_text)
+                        
+                        print(f"✅ Fallback {fallback_model} successful!")
+                        print(f"✅ Clinical Diagnosis: {diagnosis['prediction_label']}")
+                        return diagnosis
+                        
+                    except Exception as fallback_err:
+                        print(f"   ❌ Fallback {fallback_model} failed: {fallback_err}")
+                        continue
+            
+            # Return generic error
+            return {"error": "diagnosis_failed", "message": str(e)}
     
-    def _process_predictions(self, predictions: Dict, original_image: Image.Image) -> Dict:
-        """Convert model predictions to API response format"""
+    def _parse_clinical_response(self, response_text: str) -> Dict:
+        """Parse Gemini clinical specialist response into structured diagnosis"""
         
-        class_idx = predictions['class_idx']
-        confidence = float(predictions['probabilities'][class_idx])
-        label = self.CLASSES.get(class_idx, 'unknown')
+        diagnosis = "healthy"
+        confidence = 0.5
+        severity_score = 0.0
+        affected_area = "N/A"
+        clinical_assessment = ""
+        full_response = response_text
         
-        # Determine if DFU detected
-        dfu_detected = label in ['early_dfu', 'advanced_dfu']
+        # Parse response line by line
+        lines = response_text.split('\n')
+        for line in lines:
+            line_lower = line.lower()
+            
+            if line.startswith('DIAGNOSIS:'):
+                diag_text = line.split(':', 1)[1].strip().lower()
+                if 'advanced' in diag_text:
+                    diagnosis = 'advanced_dfu'
+                elif 'early' in diag_text or ('dfu' in diag_text and 'healthy' not in diag_text):
+                    diagnosis = 'early_dfu'
+                else:
+                    diagnosis = 'healthy'
+            
+            elif line.startswith('CONFIDENCE:'):
+                try:
+                    conf_str = line.split(':', 1)[1].strip()
+                    confidence = float(conf_str)
+                    confidence = max(0.0, min(1.0, confidence))
+                except:
+                    confidence = 0.5
+            
+            elif line.startswith('SEVERITY_SCORE:'):
+                try:
+                    sev_str = line.split(':', 1)[1].strip()
+                    severity_score = float(sev_str)
+                    severity_score = max(0.0, min(1.0, severity_score))
+                except:
+                    severity_score = self.SEVERITY_LEVELS.get(diagnosis, 0.5)
+            
+            elif line.startswith('AFFECTED_AREA:'):
+                affected_area = line.split(':', 1)[1].strip()
+                if affected_area.lower() == "n/a":
+                    affected_area = "N/A"
+            
+            elif line.startswith('CLINICAL_ASSESSMENT:'):
+                clinical_assessment = line.split(':', 1)[1].strip()
         
-        # Risk level
-        if label == 'healthy':
-            risk_level = "Low"
-        elif label == 'early_dfu':
-            risk_level = "Moderate"
-        else:
-            risk_level = "High"
+        # Build probability distribution
+        if diagnosis == 'healthy':
+            probs = {'healthy': min(0.99, confidence), 'early_dfu': 0.005, 'advanced_dfu': 0.005}
+        elif diagnosis == 'early_dfu':
+            probs = {'healthy': 1 - confidence, 'early_dfu': confidence * 0.7, 'advanced_dfu': confidence * 0.3}
+        else:  # advanced_dfu
+            probs = {'healthy': 1 - confidence, 'early_dfu': confidence * 0.3, 'advanced_dfu': confidence * 0.7}
         
-        # Next steps
-        next_steps = self._generate_next_steps(label, confidence)
+        dfu_detected = diagnosis != "healthy"
+        
+        # If severity not explicitly set, use label-based default
+        if severity_score == 0.0 and diagnosis != "healthy":
+            severity_score = self.SEVERITY_LEVELS.get(diagnosis, 0.5)
         
         return {
+            'prediction_label': diagnosis,
+            'confidence': min(confidence, 0.99),  # Cap at 99% for safety
+            'severity_score': severity_score,
             'dfu_detected': dfu_detected,
-            'prediction_label': label,
-            'confidence': confidence,
-            'risk_level': risk_level,
-            'all_predictions': {
-                'healthy': float(predictions['probabilities'][0]),
-                'early_dfu': float(predictions['probabilities'][1]) if len(predictions['probabilities']) > 1 else 0,
-                'advanced_dfu': float(predictions['probabilities'][2]) if len(predictions['probabilities']) > 2 else 0
-            },
-            'affected_area': None,  # Will be filled by Grad-CAM if applicable
-            'next_steps': next_steps,
-            'model_version': 'v1.0',
-            'model_source': 'DFUC2021-pretrained'
+            'affected_area': affected_area if affected_area else "N/A",
+            'clinical_assessment': clinical_assessment,
+            'probabilities': probs,
+            'model_version': 'gemini_clinical_v1.0',
+            'full_response': full_response
         }
     
-    def _generate_gradcam(self, image_array: np.ndarray, predictions: Dict) -> Dict:
+    def generate_gradcam(self, image_input, output_path: Optional[str] = None) -> Optional[np.ndarray]:
         """
-        Generate Grad-CAM visualization for localization
-        Returns coordinates and severity of affected region
-        """
-        try:
-            # This is a simplified Grad-CAM implementation
-            # In production, use pytorch-grad-cam library
-            
-            # For now, return dummy heatmap region
-            h, w = self.INPUT_SIZE
-            
-            # Create artificial region based on predictions
-            class_idx = predictions['class_idx']
-            confidence = predictions['probabilities'][class_idx]
-            
-            if confidence > 0.7:
-                # If high confidence, estimate affected area in center
-                x = int(w * 0.3)
-                y = int(h * 0.4)
-                width = int(w * 0.4)
-                height = int(h * 0.3)
-                severity = confidence
-            else:
-                # Low confidence - distributed across image
-                x = int(w * 0.2)
-                y = int(h * 0.2)
-                width = int(w * 0.6)
-                height = int(h * 0.6)
-                severity = confidence
-            
-            return {
-                'x': x,
-                'y': y,
-                'width': width,
-                'height': height,
-                'severity': float(severity),
-                'note': 'Localization region - consult professional for diagnosis'
-            }
+        NOTE: Grad-CAM visualization not available with Gemini-only architecture.
         
-        except Exception as e:
-            print(f"⚠️ Grad-CAM generation failed: {e}")
-            return None
+        Gemini Vision provides text-based clinical assessment instead of visual heatmaps.
+        For interpretability, refer to the clinical_assessment field in the prediction result.
+        
+        Args:
+            image_input: Image to analyze (ignored - Gemini uses text output)
+            output_path: Optional path to save visualization (will be skipped)
+            
+        Returns:
+            None (use clinical_assessment text instead)
+        """
+        print("ℹ️  Grad-CAM heatmap visualization not available in Gemini-only mode.")
+        print("   Gemini provides detailed clinical text assessment instead.")
+        return None
+
+
+# Singleton instance
+_dfu_classifier_instance = None
+
+def get_dfu_classifier(model_name: str = "gemini", use_ensemble: bool = True) -> DFUClassifier:
+    """
+    Get or initialize the DFU classifier singleton with Gemini Vision clinical specialist
     
-    @staticmethod
-    def _generate_next_steps(label: str, confidence: float) -> list:
-        """Generate recommended next steps based on classification"""
-        
-        steps = []
-        
-        if label == 'healthy':
-            steps = [
-                "Maintain regular foot care and hygiene",
-                "Continue monitoring foot health",
-                "Annual preventive screening recommended"
-            ]
-        
-        elif label == 'early_dfu':
-            steps = [
-                "Schedule appointment with podiatrist within 1 week",
-                "Monitor affected area daily for changes",
-                "Keep foot clean and dry",
-                "Avoid tight shoes",
-                "Apply prescribed topical medication if available",
-                "Follow up with physician for glucose control"
-            ]
-        
-        elif label == 'advanced_dfu':
-            steps = [
-                "🚨 URGENT: Contact podiatrist immediately",
-                "Seek medical evaluation within 24-48 hours",
-                "Do NOT delay - advanced ulcers risk infection",
-                "Monitor for signs of infection (redness, warmth, discharge)",
-                "Elevate foot when resting",
-                "Avoid putting weight on affected foot",
-                "Follow all medical recommendations strictly"
-            ]
-        
-        return steps
+    Args:
+        model_name: Model identifier (ignored - uses Gemini only)
+        use_ensemble: Always True - Gemini is the primary specialist model
     
-    def _fallback_detection(self, image: Image.Image) -> Dict:
-        """
-        Fallback heuristic detection if model not available
-        Based on image analysis alone
-        """
-        img_array = np.array(image.convert('RGB'))
-        
-        # Simple heuristic: check for redness (high R channel)
-        red_ratio = np.mean(img_array[:, :, 0]) / (np.mean(img_array[:, :, 1:]) + 1e-5)
-        
-        if red_ratio > 1.3:
-            return {
-                'dfu_detected': True,
-                'prediction_label': 'early_dfu',
-                'confidence': 0.6,
-                'method': 'heuristic_fallback',
-                'warning': 'No model available - using color-based heuristic only',
-                'next_steps': ['Consult healthcare professional for proper diagnosis']
-            }
-        
-        return {
-            'dfu_detected': False,
-            'prediction_label': 'healthy',
-            'confidence': 0.5,
-            'method': 'heuristic_fallback',
-            'warning': 'No model available - using color-based heuristic only'
-        }
+    Returns:
+        DFUClassifier with Gemini Vision clinical specialist diagnosis
+    """
+    global _dfu_classifier_instance
+    if _dfu_classifier_instance is None:
+        _dfu_classifier_instance = DFUClassifier(model_name="gemini", use_ensemble=True)
+    return _dfu_classifier_instance
+
+
+# Wrapper for backward compatibility
+class DFUDetectionService:
+    """Backward compatibility wrapper for DFU detection service"""
+    
+    def __init__(self):
+        self.classifier = get_dfu_classifier()
+    
+    @property
+    def model(self):
+        return self.classifier.gemini_model
+    
+    def predict(self, image_input):
+        return self.classifier.predict(image_input)
+    
+    def generate_gradcam(self, image_input, output_path):
+        return self.classifier.generate_gradcam(image_input, output_path)
 
 
 # Factory function

@@ -52,7 +52,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
@@ -65,7 +65,7 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -184,11 +184,11 @@ export default function DailyCheckin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
       {/* Time Selection Modal */}
       {showTimeModal && (
         <div className="fixed inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full border border-gray-100 drop-shadow-xl">
+          <div className="bg-white rounded-3xl shadow-2xl p-4 sm:p-5 lg:p-6 max-w-md w-full border border-gray-100 drop-shadow-xl">
             {/* Header */}
             <div className="text-center mb-8">
               <div className="inline-block bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full p-4 mb-4">
@@ -229,7 +229,7 @@ export default function DailyCheckin() {
         </div>
       )}
       
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+      <div className="w-full max-w-lg lg:max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-5 lg:p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Daily Health Checkin</h1>
             <p className="text-gray-600">Day {currentDay} of 7 - Track your daily habits</p>
@@ -357,7 +357,7 @@ export default function DailyCheckin() {
         )}
 
         {!submissionSuccess && checkinCount < 7 && !isLocked && (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Diet Score */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

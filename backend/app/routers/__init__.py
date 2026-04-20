@@ -7,16 +7,19 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import List
 import io
+import os
+import uuid
 from PIL import Image
 
 from app.database import get_db
 from app.services import get_prediction_service, get_dfu_service, get_recommendation_engine
+from app.services.dfu_classifier import get_dfu_classifier
 from app.schemas import (
     UserRegisterRequest, UserRegisterResponse, UserProfileResponse,
     UserLoginRequest, UserLoginResponse,
     DailyCheckinRequest, DailyCheckinResponse, CheckinHistoryResponse,
     PredictionRequest, PredictionResponse, PredictionHistoryResponse,
-    RecommendationsResponse, DFUScanRequest, DFUScanResponse,
+    Phase2RecommendationsResponse, DFUScanRequest, DFUScanResponse,
     InsoleReadingRequest, InsoleReadingResponse, HealthCheckResponse
 )
 from app.utils import hash_password, verify_password
@@ -465,7 +468,7 @@ async def get_prediction_history(
 
 recommendations_router = APIRouter(prefix="/recommendations", tags=["Phase 2 - Recommendations"])
 
-@recommendations_router.get("/{user_id}", response_model=RecommendationsResponse)
+@recommendations_router.get("/{user_id}", response_model=Phase2RecommendationsResponse)
 async def get_recommendations(
     user_id: str,
     db: Session = Depends(get_db)
@@ -491,15 +494,9 @@ async def get_recommendations(
         features=prediction.feature_snapshot
     )
     
-    return RecommendationsResponse(
-        user_id=user_id,
-        risk_category=rec_result['risk_category'],
-        risk_score=rec_result['risk_score'],
-        recommendations=rec_result['recommendations'],
-        deficiencies=rec_result['deficiencies'],
-        strengths=rec_result['strengths'],
-        priority_focus=rec_result['priority_focus'],
-        generated_at=datetime.utcnow()
+    return Phase2RecommendationsResponse(
+        nutrition_plan=rec_result['nutrition_plan'],
+        lifestyle_goals=rec_result['lifestyle_goals']
     )
 
 # ============================================================
@@ -508,13 +505,26 @@ async def get_recommendations(
 
 dfu_router = APIRouter(prefix="/dfu", tags=["Phase 3 - DFU Detection"])
 
+# Create directories for uploads
+os.makedirs("uploads/dfu_images", exist_ok=True)
+os.makedirs("uploads/gradcam", exist_ok=True)
+
 @dfu_router.post("/scan", response_model=DFUScanResponse)
 async def scan_for_dfu(
     user_id: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """Upload foot image for DFU detection"""
+    """
+    Upload foot image for DFU detection using Hugging Face models.
+    
+    Args:
+        user_id: User ID performing the scan
+        file: Image file (JPG, PNG, WebP)
+    
+    Returns:
+        DFUScanResponse with prediction results and next steps
+    """
     try:
         # Verify user exists
         user = db.query(User).filter(User.id == user_id).first()
@@ -525,55 +535,138 @@ async def scan_for_dfu(
             )
         
         # Validate file
-        if file.size > 10 * 1024 * 1024:  # 10 MB
+        allowed_formats = {"image/jpeg", "image/png", "image/webp"}
+        if file.content_type not in allowed_formats:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid image format. Allowed: {', '.join(allowed_formats)}"
+            )
+        
+        if file.size and file.size > 10 * 1024 * 1024:  # 10 MB
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail="File size exceeds 10MB limit"
             )
         
-        # Read and process image
-        contents = await file.read()
-        image = Image.open(io.BytesIO(contents))
+        # Read image data
+        image_data = await file.read()
+        if not image_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Empty image file"
+            )
         
-        # Get DFU detection service
-        dfu_service = get_dfu_service()
-        result = dfu_service.detect(image)
+        # Generate scan ID and file paths
+        scan_id = str(uuid.uuid4())
+        image_filename = f"uploads/dfu_images/{scan_id}_{file.filename}"
+        
+        # Save original image
+        os.makedirs(os.path.dirname(image_filename), exist_ok=True)
+        with open(image_filename, "wb") as f:
+            f.write(image_data)
+        
+        # Run DFU prediction using Gemini Vision clinical specialist
+        classifier = get_dfu_classifier()
+        prediction = classifier.predict(image_data)
+        
+        # Handle prediction errors with appropriate HTTP status codes
+        if not prediction:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="DFU prediction failed - no response from classifier"
+            )
+        
+        if "error" in prediction:
+            error_type = prediction.get("error", "unknown")
+            error_msg = prediction.get("message", str(prediction.get("error")))
+            
+            # Handle API key errors (400)
+            if error_type == "api_key_invalid":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"❌ API Configuration Error: {error_msg} | Update GEMINI_API_KEY in backend/.env and restart the server."
+                )
+            
+            # Handle quota limit errors (429)
+            if error_type == "quota_limit":
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=error_msg
+                )
+            
+            # Handle diagnosis failures (422)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"DFU diagnosis failed: {error_msg}"
+            )
+        
+        # Extract Gemini clinical diagnosis
+        model_version = "gemini_clinical_v1.0"  # Gemini Vision Clinical Specialist
+        
+        # Grad-CAM is not available with Gemini (text-based clinical assessment instead)
+        gradcam_path = None
+        
+        # Determine next steps based on prediction
+        next_steps = _get_dfu_next_steps(
+            prediction["prediction_label"],
+            prediction["confidence"],
+            prediction.get("severity_score", 0.5)
+        )
         
         # Save scan to database
         scan = DFUScan(
+            id=scan_id,
             user_id=user_id,
-            image_path=f"scans/{user_id}/{datetime.utcnow().isoformat()}_{file.filename}",
-            prediction_label=result['prediction_label'],
-            confidence=result['confidence'],
-            dfu_detected=result['dfu_detected'],
-            affected_area=result.get('affected_area'),
-            model_version='v1.0',
-            model_name='DFUC2021-pretrained'
+            image_path=image_filename,
+            prediction_label=prediction["prediction_label"],
+            confidence=prediction["confidence"],
+            dfu_detected=prediction["dfu_detected"],
+            affected_area=prediction.get("affected_area", "N/A"),
+            gradcam_path=gradcam_path,
+            model_version=model_version,
+            model_name="gemini_clinical_specialist"
         )
         
         db.add(scan)
         db.commit()
         db.refresh(scan)
         
-        return DFUScanResponse(
+        # Build response with clinical assessment
+        response = DFUScanResponse(
             scan_id=scan.id,
             user_id=scan.user_id,
             dfu_detected=scan.dfu_detected,
             prediction_label=scan.prediction_label,
-            confidence=scan.confidence,
-            affected_area=scan.affected_area,
+            confidence=round(scan.confidence, 4),
+            affected_area=prediction.get("affected_area"),
+            severity_score=prediction.get("severity_score"),
+            clinical_assessment=prediction.get("clinical_assessment"),
+            wagner_class=prediction.get("wagner_class"),
             scanned_at=scan.created_at,
             model_version=scan.model_version,
-            next_steps=result.get('next_steps', [])
+            next_steps=next_steps
         )
+        
+        # Log Gemini clinical specialist assessment
+        print(f"🔬 Gemini Clinical Specialist Assessment:")
+        print(f"   Diagnosis: {prediction['prediction_label']}")
+        print(f"   Confidence: {prediction['confidence']:.2%}")
+        print(f"   Severity Score: {prediction.get('severity_score', 0.5):.2f}/1.0")
+        if prediction.get("affected_area") and prediction["affected_area"] != "N/A":
+            print(f"   Affected Area: {prediction['affected_area']}")
+        if prediction.get("clinical_assessment"):
+            print(f"   Clinical Assessment: {prediction['clinical_assessment']}")
+        
+        return response
     
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
+        print(f"❌ DFU scan error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail=f"Scan failed: {str(e)}"
         )
 
 # ============================================================
@@ -745,6 +838,63 @@ async def clear_test_entries(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def _get_dfu_next_steps(prediction_label: str, confidence: float, severity_score: float = None) -> list:
+    """
+    Generate clinical next steps based on DFU prediction and severity.
+    
+    Args:
+        prediction_label: One of 'healthy', 'early_dfu', 'advanced_dfu'
+        confidence: Confidence score (0-1)
+        severity_score: Ulcer severity score (0-1), optional
+    
+    Returns:
+        List of recommended actions
+    """
+    next_steps = []
+    
+    if prediction_label == "healthy":
+        next_steps = [
+            "✅ No signs of foot ulcers detected",
+            "Continue regular foot care and hygiene",
+            "Perform weekly self-checks",
+            "Maintain good glucose control"
+        ]
+    
+    elif prediction_label == "early_dfu":
+        next_steps = [
+            "⚠️ Early signs of diabetic foot ulcer detected",
+            f"Severity: {severity_score*100:.0f}% (mild-moderate)" if severity_score else "Severity: Mild-Moderate",
+            "Schedule appointment with podiatrist within 3-5 days",
+            "Increase foot care frequency to daily checks",
+            "Avoid pressure on affected area",
+            "Keep foot clean and dry",
+            "Consider special footwear consultation"
+        ]
+    
+    elif prediction_label == "advanced_dfu":
+        next_steps = [
+            "🔴 ADVANCED diabetic foot ulcer detected",
+            f"Severity: {severity_score*100:.0f}% (severe)" if severity_score else "Severity: Severe",
+            "Schedule URGENT appointment with medical specialist",
+            "Do NOT delay - seek immediate medical attention",
+            "Avoid weight-bearing on affected foot",
+            "Keep wound clean with prescribed dressings",
+            "Monitor for signs of infection (increased warmth, drainage, odor)",
+            "Contact endocrinologist for glucose management review"
+        ]
+    
+    # Add confidence disclaimer if below threshold
+    if confidence < 0.85:
+        next_steps.append(
+            f"ℹ️ Note: Clinical confidence {confidence:.1%} - Professional evaluation recommended"
+        )
+    
+    return next_steps
 
 # Include all routers
 router.include_router(users_router)

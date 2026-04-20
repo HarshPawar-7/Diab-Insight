@@ -190,7 +190,7 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12">
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
           <>
@@ -205,7 +205,7 @@ export default function Dashboard() {
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-4 sm:p-5 lg:p-6">
               {/* Left Section - Assessment (2 columns) */}
               <div className="lg:col-span-2">
                 {/* New Journey Badge */}
@@ -216,7 +216,7 @@ export default function Dashboard() {
                 )}
 
                 {/* 7-Day Assessment Card */}
-                <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm mb-8">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">
                     7-Day Diabetes Risk Assessment
                   </h2>
@@ -276,7 +276,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Recent Insights Section */}
-                <div className="bg-white rounded-2xl p-8 shadow-sm">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Recent Insights</h3>
                   <p className="text-gray-600 mb-6">
                     Once you begin your assessment, AI-driven insights and clinical recommendations will appear here.
@@ -293,7 +293,7 @@ export default function Dashboard() {
               {/* Right Section - Health Profile & DFU (1 column) */}
               <div className="space-y-8">
                 {/* Health Profile Card */}
-                <div className="bg-white rounded-2xl p-8 shadow-sm">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-gray-900">Health Profile</h3>
                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,7 +354,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* DFU Scan Card */}
-                <div className="bg-teal-700 rounded-2xl p-8 shadow-lg text-white overflow-hidden relative">
+                <div className="bg-teal-700 rounded-2xl p-4 sm:p-5 lg:p-6 shadow-lg text-white overflow-hidden relative">
                   {/* Decorative elements */}
                   <div className="absolute top-0 right-0 w-40 h-40 bg-teal-600 rounded-full -mr-20 -mt-20 opacity-20"></div>
                   
@@ -400,13 +400,13 @@ export default function Dashboard() {
             <h1 className="text-4xl font-bold text-gray-900 mb-8">Assessment History</h1>
             
             {historyLoading ? (
-              <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading assessments...</p>
               </div>
             ) : predictions.length === 0 ? (
-              <div className="bg-white rounded-2xl p-8 shadow-sm">
-                <div className="text-center py-12">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
+                <div className="text-center py-6 md:py-8 lg:py-6 md:py-8 lg:py-12">
                   <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -421,7 +421,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:gap-6">
                 {predictions.map((pred, index) => {
                   const riskColor = pred.risk_score < 0.35 ? 'green' : pred.risk_score < 0.65 ? 'yellow' : 'red';
                   const riskColorClass = riskColor === 'green' ? 'bg-green-50 border-green-300' : riskColor === 'yellow' ? 'bg-yellow-50 border-yellow-300' : 'bg-red-50 border-red-300';
@@ -476,8 +476,8 @@ export default function Dashboard() {
         {activeTab === 'resources' && (
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-8">Health Resources</h1>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-white rounded-2xl p-8 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-5 lg:p-6">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
                   <span className="text-2xl">📚</span>
                 </div>
@@ -486,7 +486,7 @@ export default function Dashboard() {
                 <button className="text-blue-600 font-semibold hover:text-blue-700 transition">Learn More →</button>
               </div>
 
-              <div className="bg-white rounded-2xl p-8 shadow-sm">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
                   <span className="text-2xl">🥗</span>
                 </div>
@@ -495,7 +495,7 @@ export default function Dashboard() {
                 <button className="text-blue-600 font-semibold hover:text-blue-700 transition">Learn More →</button>
               </div>
 
-              <div className="bg-white rounded-2xl p-8 shadow-sm">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
                   <span className="text-2xl">🏃</span>
                 </div>
@@ -504,7 +504,7 @@ export default function Dashboard() {
                 <button className="text-blue-600 font-semibold hover:text-blue-700 transition">Learn More →</button>
               </div>
 
-              <div className="bg-white rounded-2xl p-8 shadow-sm">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                 <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
                   <span className="text-2xl">🏥</span>
                 </div>
@@ -520,11 +520,11 @@ export default function Dashboard() {
         {activeTab === 'profile' && (
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-8">My Profile</h1>
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-4 sm:p-5 lg:p-6">
               {/* Profile Header */}
               <div className="lg:col-span-2">
-                <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
-                  <div className="flex items-start gap-6 mb-8">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm mb-8">
+                  <div className="flex items-start gap-4 md:gap-4 md:gap-6 mb-8">
                     <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-full flex items-center justify-center text-3xl font-bold">
                       {user.name ? user.name[0].toUpperCase() : 'U'}
                     </div>
@@ -537,9 +537,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* Personal Information */}
-                <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm mb-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h3>
-                  <div className="grid md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-5 lg:p-6">
                     <div>
                       <p className="text-sm text-gray-600 mb-2">Full Name</p>
                       <p className="text-lg font-semibold text-gray-900">{user.name}</p>
@@ -580,9 +580,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* Medical History */}
-                <div className="bg-white rounded-2xl p-8 shadow-sm">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                   <h3 className="text-2xl font-bold text-gray-900 mb-6">Medical History</h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <span className="text-gray-700 font-medium">Family History of Diabetes</span>
                       <span className={`px-3 py-1 rounded-full text-sm font-semibold ${user.family_history_diabetes ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
@@ -614,7 +614,7 @@ export default function Dashboard() {
               {/* Sidebar */}
               <div className="space-y-8">
                 {/* Account Settings */}
-                <div className="bg-white rounded-2xl p-8 shadow-sm">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm">
                   <h3 className="text-xl font-bold text-gray-900 mb-6">Account Settings</h3>
                   <div className="space-y-3">
                     <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition font-medium">
@@ -630,7 +630,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Developer Tools */}
-                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-8">
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 lg:p-6">
                   <h3 className="text-xl font-bold text-amber-900 mb-4 flex items-center gap-2">
                     <span>🛠️</span> Developer Tools
                   </h3>
@@ -665,7 +665,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Danger Zone */}
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5 lg:p-6">
                   <h3 className="text-xl font-bold text-red-900 mb-4">Danger Zone</h3>
                   <button 
                     onClick={handleLogout}

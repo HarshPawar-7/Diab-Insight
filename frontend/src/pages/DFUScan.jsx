@@ -149,7 +149,7 @@ export default function DFUScan() {
   // UPLOAD VIEW - File selection and upload
   if (!scanComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-12 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
@@ -166,7 +166,7 @@ export default function DFUScan() {
           </div>
 
           {/* Upload Card */}
-          <div className="bg-white rounded-3xl shadow-xl p-8 mb-6">
+          <div className="bg-white rounded-3xl shadow-xl p-4 sm:p-5 lg:p-6 mb-6">
             {/* Instructions */}
             <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-blue-900 mb-2">📸 Capture Tips:</h3>
@@ -190,7 +190,7 @@ export default function DFUScan() {
 
               {imagePreview ? (
                 // Image Preview
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="relative bg-gray-100 rounded-2xl overflow-hidden border-2 border-indigo-200">
                     <img
                       src={imagePreview}
@@ -285,8 +285,8 @@ export default function DFUScan() {
   // RESULTS VIEW - Display scan results
   if (scanResult) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-12 px-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
+        <div className="w-full max-w-full lg:max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -299,7 +299,7 @@ export default function DFUScan() {
           </div>
 
           {/* Main Results Card */}
-          <div className="bg-white rounded-3xl shadow-xl p-8 mb-6">
+          <div className="bg-white rounded-3xl shadow-xl p-4 sm:p-5 lg:p-6 mb-6">
             {/* Prediction */}
             <div className="mb-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
@@ -383,7 +383,7 @@ export default function DFUScan() {
           </div>
 
           {/* Clinical Recommendations */}
-          <div className="bg-white rounded-3xl shadow-xl p-8 mb-6">
+          <div className="bg-white rounded-3xl shadow-xl p-4 sm:p-5 lg:p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">
               📋 Recommended Next Steps
             </h2>
