@@ -14,113 +14,172 @@ export default function Landing() {
   }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm">
+      <nav className="sticky top-0 bg-white shadow-sm z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-indigo-600">DiabInsight</h1>
+            <h1 className="text-xl font-bold text-blue-600">DiabInsight</h1>
+            
+            {/* Center Navigation Links */}
+            <div className="hidden md:flex gap-8">
+              <a href="#" className="text-gray-700 hover:text-blue-600 transition font-medium">Dashboard</a>
+              <a href="#" className="text-gray-700 hover:text-blue-600 transition font-medium">History</a>
+              <a href="#" className="text-gray-700 hover:text-blue-600 transition font-medium">Resources</a>
             </div>
-            {!user && (
-              <div className="flex gap-4">
-                <Link
-                  to="/login"
-                  className="text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition font-medium"
-                >
-                  Login
-                </Link>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-                >
-                  Sign Up
-                </button>
-              </div>
-            )}
+
+            {/* Right Side - Auth Buttons */}
+            <div className="flex gap-4 items-center">
+              <Link
+                to="/login"
+                className="text-gray-700 px-4 py-2 hover:text-blue-600 transition font-medium"
+              >
+                Login
+              </Link>
+              <button
+                onClick={() => navigate('/register')}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-semibold"
+              >
+                Sign Up
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Diabetes Risk Assessment Made Simple
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
+          {/* Left Content */}
+          <div>
+            {/* Badge */}
+            <div className="inline-block bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">
+              ✓ Phase 1 on-device AI & monitoring
+            </div>
+
+            {/* Title */}
+            <h1 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">
+              The Future of<br />
+              <span className="text-blue-600">Diabetes Care</span><br />
+              Is Behavioral.
+            </h1>
+
+            {/* Description */}
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              DiabInsight enables predictive monitoring with clinical rigor. Predict your risk, prevent complications, and protect your health with advanced computer vision screening.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={() => navigate('/register')}
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-semibold text-lg"
+              >
+                Get Started
+              </button>
+              <button
+                className="bg-white border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:border-gray-400 transition font-semibold text-lg"
+              >
+                View Demo
+              </button>
+            </div>
+          </div>
+
+          {/* Right - App Mockup Image */}
+          <div className="bg-gray-900 rounded-3xl p-6 shadow-2xl h-96 flex items-center justify-center">
+            <div className="text-center text-gray-400">
+              <div className="text-6xl mb-4">📱</div>
+              <p>App Preview</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Advanced Predictive Capabilities Section */}
+        <div className="mb-20 py-12">
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
+            Advanced Predictive Capabilities
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Get personalized diabetes predictions and health recommendations in minutes.
+          <p className="text-center text-gray-600 text-lg mb-12 max-w-3xl mx-auto">
+            Three integrated phases for comprehensive diabetes management and early detection
           </p>
-          <button
-            onClick={() => navigate('/register')}
-            className="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition text-lg font-semibold"
-          >
-            Start Free Assessment
-          </button>
+
+          {/* Features Grid */}
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* 7-Day Behavioral Tracking */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-lg transition">
+              <div className="bg-gray-100 h-48 rounded-lg mb-6 flex items-center justify-center text-4xl font-bold text-gray-400">
+                {/* Placeholder for image */}
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                7-Day Behavioral Tracking
+              </h3>
+              <p className="text-gray-600">
+                Daily monitoring of lifestyle factors: diet, physical activity, sleep, stress levels, and hydration to build a comprehensive health profile.
+              </p>
+            </div>
+
+            {/* Computer Vision DFU */}
+            <div className="bg-teal-700 rounded-2xl p-8 shadow-lg text-white">
+              <div className="flex justify-end mb-6">
+                <div className="bg-teal-600 rounded-lg p-4">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10z"/>
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold mb-3">
+                Computer Vision DFU
+              </h3>
+              <p className="text-teal-100 mb-6">
+                Early detection of diabetic foot ulcers using advanced CNN technology. Screen foot images instantly for precise risk assessment.
+              </p>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-teal-200">👣</div>
+              </div>
+            </div>
+
+            {/* IoT Smart Insole */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-lg transition">
+              <div className="bg-gray-100 h-48 rounded-lg mb-6 flex items-center justify-center text-4xl">
+                {/* Placeholder for insole image */}
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                IoT Smart Insole
+              </h3>
+              <p className="text-gray-600">
+                Real-time monitoring of foot pressure, temperature, and moisture. Detect anomalies early with wearable sensors for continuous protection.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mt-16">
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-xl font-semibold mb-2">Risk Prediction</h3>
-            <p className="text-gray-600">
-              Get accurate diabetes risk scores based on your lifestyle and medical history.
+        {/* Bottom Features Section */}
+        <div className="grid lg:grid-cols-3 gap-8 pb-20">
+          {/* Clinical Privacy */}
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-8">
+            <div className="text-5xl mb-4">🔐</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Clinical Privacy</h3>
+            <p className="text-gray-600 text-sm">
+              HIPAA-compliant encryption ensures your sensitive health data remains private and secure at all times.
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            <div className="text-4xl mb-4">💡</div>
-            <h3 className="text-xl font-semibold mb-2">Personalized Recommendations</h3>
-            <p className="text-gray-600">
-              Receive tailored health and lifestyle recommendations based on your risk level.
+          {/* Collaborative Care */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8">
+            <div className="text-5xl mb-4">👥</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Collaborative Care</h3>
+            <p className="text-gray-600 text-sm">
+              Share results with healthcare providers for coordinated care and personalized treatment plans.
             </p>
           </div>
 
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            <div className="text-4xl mb-4">🔒</div>
-            <h3 className="text-xl font-semibold mb-2">Privacy Protected</h3>
-            <p className="text-gray-600">
-              Your health data is secure, encrypted, and never shared with third parties.
+          {/* Smart Insights */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8">
+            <div className="text-5xl mb-4">💡</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Insights</h3>
+            <p className="text-gray-600 text-sm">
+              AI-powered recommendations tailored to your unique health profile and risk factors for actionable guidance.
             </p>
-          </div>
-        </div>
-
-        {/* How It Works */}
-        <div className="mt-20">
-          <h3 className="text-3xl font-bold text-center mb-12">How It Works</h3>
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                1
-              </div>
-              <h4 className="font-semibold mb-2">Register</h4>
-              <p className="text-gray-600 text-sm">Create an account with your basic information</p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                2
-              </div>
-              <h4 className="font-semibold mb-2">Complete Checkin</h4>
-              <p className="text-gray-600 text-sm">Answer 7 days of health questionnaire</p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                3
-              </div>
-              <h4 className="font-semibold mb-2">Get Results</h4>
-              <p className="text-gray-600 text-sm">View your personalized risk assessment</p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
-                4
-              </div>
-              <h4 className="font-semibold mb-2">Take Action</h4>
-              <p className="text-gray-600 text-sm">Follow recommendations to improve health</p>
-            </div>
           </div>
         </div>
       </div>

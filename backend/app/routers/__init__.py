@@ -103,6 +103,17 @@ async def register_user(
             user_id=user.id,
             email=user.email,
             name=user.name,
+            age=user.age,
+            gender=user.gender,
+            ethnicity=user.ethnicity,
+            education_level=user.education_level,
+            income_level=user.income_level,
+            employment_status=user.employment_status,
+            smoking_status=user.smoking_status,
+            bmi=user.bmi,
+            family_history_diabetes=user.family_history_diabetes,
+            hypertension_history=user.hypertension_history,
+            cardiovascular_history=user.cardiovascular_history,
             created_at=user.created_at,
             message="User registered successfully"
         )
@@ -142,6 +153,17 @@ async def login_user(
             user_id=user.id,
             email=user.email,
             name=user.name,
+            age=user.age,
+            gender=user.gender,
+            ethnicity=user.ethnicity,
+            education_level=user.education_level,
+            income_level=user.income_level,
+            employment_status=user.employment_status,
+            smoking_status=user.smoking_status,
+            bmi=user.bmi,
+            family_history_diabetes=user.family_history_diabetes,
+            hypertension_history=user.hypertension_history,
+            cardiovascular_history=user.cardiovascular_history,
             message="Login successful"
         )
     
@@ -620,6 +642,110 @@ async def submit_insole_reading(
             detail=str(e)
         )
 
+# ============================================================
+# TEST ENDPOINTS (Development Only - for testing 7-day flow)
+# ============================================================
+
+test_router = APIRouter(prefix="/test", tags=["Testing"])
+
+@test_router.post("/populate-days/{user_id}")
+async def populate_test_days(
+    user_id: str,
+    num_days: int = 6,
+    db: Session = Depends(get_db)
+):
+    """
+    [DEVELOPMENT ONLY] Populate dummy daily entries for testing.
+    Creates 'num_days' completed entries with past timestamps.
+    Call this to test the 7-day assessment completion flow.
+    
+    Example: POST /api/v1/test/populate-days/{user_id}?num_days=6
+    """
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Delete existing entries to avoid duplicates
+        existing = db.query(DailyEntry).filter(DailyEntry.user_id == user_id).all()
+        for entry in existing:
+            db.delete(entry)
+        db.commit()
+        
+        # Create dummy entries with past timestamps
+        now = datetime.utcnow()
+        created_entries = []
+        
+        for day in range(1, num_days + 1):
+            # Create entry from (num_days - day + 1) days ago
+            days_ago = num_days - day + 1
+            entry_date = now - timedelta(days=days_ago)
+            
+            entry = DailyEntry(
+                user_id=user_id,
+                diet_score=7,  # Dummy data
+                physical_activity_minutes=45,
+                sleep_hours=7.5,
+                screen_time_hours=6,
+                hydration_glasses=8,
+                stress_level=4,
+                entry_date=entry_date
+            )
+            db.add(entry)
+            created_entries.append(day)
+        
+        db.commit()
+        
+        return {
+            "message": f"✅ Created {num_days} test entries",
+            "user_id": user_id,
+            "days_created": created_entries,
+            "ready_to_test": f"Now submit day {num_days + 1} to test completion flow",
+            "note": "⚠️  DELETE THIS ENDPOINT BEFORE PRODUCTION"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Test data creation failed: {str(e)}"
+        )
+
+@test_router.delete("/clear-entries/{user_id}")
+async def clear_test_entries(
+    user_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    [DEVELOPMENT ONLY] Clear all daily entries for a user (reset progress).
+    Use this to reset testing and start over.
+    """
+    try:
+        entries = db.query(DailyEntry).filter(DailyEntry.user_id == user_id).all()
+        count = len(entries)
+        
+        for entry in entries:
+            db.delete(entry)
+        db.commit()
+        
+        return {
+            "message": f"✅ Cleared {count} entries",
+            "user_id": user_id,
+            "status": "Reset - Ready for fresh testing"
+        }
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
 # Include all routers
 router.include_router(users_router)
 router.include_router(checkin_router)
@@ -627,3 +753,4 @@ router.include_router(predict_router)
 router.include_router(recommendations_router)
 router.include_router(dfu_router)
 router.include_router(insole_router)
+router.include_router(test_router)  # Testing endpoints (remove before production)

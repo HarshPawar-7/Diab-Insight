@@ -58,6 +58,17 @@ class UserRegisterResponse(BaseModel):
     user_id: str
     email: str
     name: str
+    age: int
+    gender: str
+    ethnicity: str
+    education_level: str
+    income_level: str
+    employment_status: str
+    smoking_status: str
+    bmi: float
+    family_history_diabetes: bool
+    hypertension_history: bool
+    cardiovascular_history: bool
     created_at: datetime
     message: str
 
@@ -70,6 +81,17 @@ class UserLoginResponse(BaseModel):
     user_id: str
     email: str
     name: str
+    age: int
+    gender: str
+    ethnicity: str
+    education_level: str
+    income_level: str
+    employment_status: str
+    smoking_status: str
+    bmi: float
+    family_history_diabetes: bool
+    hypertension_history: bool
+    cardiovascular_history: bool
     message: str
 
 class UserProfileResponse(BaseModel):

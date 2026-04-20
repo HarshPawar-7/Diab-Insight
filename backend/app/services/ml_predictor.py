@@ -90,13 +90,29 @@ class DiabetesPredictionService:
             }
         
         try:
-            # Extract only non-invasive features
+            # Default values for categorical and numeric features
+            defaults = {
+                'gender': 'Male',  # Default gender
+                'smoking_status': 'Never',  # Default smoking status (safest assumption)
+                'family_history_diabetes': 0,
+                'hypertension_history': 0,
+                'cardiovascular_history': 0,
+                'age': 35,
+                'bmi': 25,
+                'alcohol_consumption_per_week': 0,
+                'physical_activity_minutes_per_week': 30,
+                'diet_score': 5,
+                'sleep_hours_per_day': 7,
+                'screen_time_hours_per_day': 4
+            }
+            
+            # Extract only non-invasive features with proper defaults
             X = pd.DataFrame([{
-                feat: features_dict.get(feat, 0)
+                feat: features_dict.get(feat, defaults.get(feat, 0))
                 for feat in self.NON_INVASIVE_FEATURES
             }])
             
-            # Validate feature presence
+            # Validate feature presence and types
             missing = [f for f in self.NON_INVASIVE_FEATURES if X[f].isna().any()]
             if missing:
                 return {
@@ -106,10 +122,22 @@ class DiabetesPredictionService:
                 }
             
             # Handle categorical features BEFORE feature engineering
+            # Convert to string to ensure proper encoding
             if self.le_gender:
-                X['gender'] = self.le_gender.transform(X[['gender']])
+                try:
+                    X['gender'] = X['gender'].astype(str)
+                    X['gender'] = self.le_gender.transform(X[['gender']])
+                except Exception as e:
+                    print(f"Warning: Gender encoding failed: {e}, using default")
+                    X['gender'] = 1  # Default encoded value
+            
             if self.le_smoking:
-                X['smoking_status'] = self.le_smoking.transform(X[['smoking_status']])
+                try:
+                    X['smoking_status'] = X['smoking_status'].astype(str)
+                    X['smoking_status'] = self.le_smoking.transform(X[['smoking_status']])
+                except Exception as e:
+                    print(f"Warning: Smoking status encoding failed: {e}, using default")
+                    X['smoking_status'] = 2  # Default encoded value (probably "Never")
             
             # Apply same feature engineering as training
             X['age_bmi_ratio'] = X['age'] / (X['bmi'] + 1)

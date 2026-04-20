@@ -11,6 +11,7 @@ export default function Results() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPrediction, setSelectedPrediction] = useState(null);
+  const [restartLoading, setRestartLoading] = useState(false);
 
   useEffect(() => {
     if (user?.user_id) {
@@ -56,6 +57,28 @@ export default function Results() {
     if (score < 0.35) return 'Low Risk';
     if (score < 0.65) return 'Moderate Risk';
     return 'High Risk';
+  };
+
+  const handleRestartChallenge = async () => {
+    try {
+      setRestartLoading(true);
+      const response = await fetch(
+        `http://localhost:8000/api/v1/test/clear-entries/${user.user_id}`,
+        { method: 'DELETE' }
+      );
+      
+      if (response.ok) {
+        // Navigate to daily checkin which will show Day 1
+        navigate('/daily-checkin');
+      } else {
+        alert('Failed to restart challenge');
+      }
+    } catch (err) {
+      console.error('Error restarting challenge:', err);
+      alert('Error restarting challenge');
+    } finally {
+      setRestartLoading(false);
+    }
   };
 
   if (loading) {
@@ -198,16 +221,23 @@ export default function Results() {
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-4 flex-wrap">
+        <div className="grid md:grid-cols-3 gap-4 flex-wrap">
+          <button
+            onClick={handleRestartChallenge}
+            disabled={restartLoading}
+            className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold disabled:bg-gray-400"
+          >
+            {restartLoading ? 'Restarting...' : '🔄 Restart 7-Day Challenge'}
+          </button>
           <button
             onClick={() => navigate('/daily-checkin')}
-            className="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition font-semibold"
+            className="bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition font-semibold"
           >
             Update Checkin
           </button>
           <button
             onClick={() => navigate('/')}
-            className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-400 transition font-semibold"
+            className="bg-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-400 transition font-semibold"
           >
             Back Home
           </button>

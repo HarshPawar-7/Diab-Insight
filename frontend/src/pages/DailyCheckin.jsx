@@ -7,7 +7,7 @@ export default function DailyCheckin() {
   const navigate = useNavigate();
   const { user, setLoading, setError } = useUser();
   const [currentDay, setCurrentDay] = useState(1);
-  const [localLoading, setLocalLoading] = useState(false);
+  const [localLoading, setLocalLoading] = useState(true); // Start as true to show loading
   const [localError, setLocalError] = useState('');
   const [checkinCount, setCheckinCount] = useState(0);
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -19,7 +19,6 @@ export default function DailyCheckin() {
 
   const [formData, setFormData] = useState({
     user_id: user?.user_id || '',
-    day: 1,
     diet_score: 5,
     physical_activity_minutes: 30,
     sleep_hours: 7,
@@ -43,7 +42,7 @@ export default function DailyCheckin() {
       const isAlreadyCompletedToday = response.data.already_completed_today || false;
       
       setCheckinCount(completedDays);
-      setCurrentDay(completedDays + 1);
+      setCurrentDay(completedDays + 1); // This will trigger the second useEffect to update formData
       
       // Show time selection modal only on first checkin
       if (completedDays === 0) {
@@ -66,6 +65,9 @@ export default function DailyCheckin() {
       }
     } catch (err) {
       // Silent fail - checkin history might not exist yet
+      console.log('History fetch error:', err);
+    } finally {
+      setLocalLoading(false); // Stop loading after fetch completes
     }
   };
 
@@ -93,6 +95,7 @@ export default function DailyCheckin() {
     try {
       const payload = {
         user_id: user.user_id,
+        day: currentDay,
         diet_score: formData.diet_score,
         physical_activity_minutes: formData.physical_activity_minutes,
         sleep_hours: formData.sleep_hours,
@@ -168,28 +171,59 @@ export default function DailyCheckin() {
     );
   }
 
+  // Show loading while fetching checkin history
+  if (localLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <h2 className="text-2xl font-bold text-gray-800">Loading assessment...</h2>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       {/* Time Selection Modal */}
       {showTimeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Select Your Preferred Checkin Time</h2>
-            <p className="text-gray-600 mb-6">You can only submit your daily checkin once per day. Choose the time that works best for you:</p>
-            <input
-              type="time"
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-6 text-lg"
-            />
+        <div className="fixed inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full border border-gray-100 drop-shadow-xl">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="inline-block bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full p-4 mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00-.293.707l-.707.707a1 1 0 101.414 1.414L9 9.414V6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900">Set Your Daily Time</h2>
+            </div>
+
+            {/* Description */}
+            <p className="text-gray-600 text-center mb-8 leading-relaxed">
+              Choose when you'd like to complete your daily health checkin. You can only submit once per 24 hours.
+            </p>
+
+            {/* Time Input */}
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Preferred Time</label>
+              <input
+                type="time"
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-200 outline-none text-lg font-semibold text-center bg-gray-50 hover:bg-white transition"
+              />
+            </div>
+
+            {/* Continue Button */}
             <button
               onClick={() => {
                 setShowTimeModal(false);
                 localStorage.setItem(`checkin_time_${user.user_id}`, selectedTime);
               }}
-              className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition font-semibold"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition font-semibold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
             >
-              Set Time & Continue
+              Set Time & Continue →
             </button>
           </div>
         </div>
@@ -198,7 +232,7 @@ export default function DailyCheckin() {
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Daily Health Checkin</h1>
-          <p className="text-gray-600">Day {currentDay} of 7 - Track your daily habits</p>
+            <p className="text-gray-600">Day {currentDay} of 7 - Track your daily habits</p>
           <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
@@ -215,51 +249,104 @@ export default function DailyCheckin() {
 
         {/* Submission Success Screen */}
         {submissionSuccess && checkinCount < 7 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">✅</div>
-            <h2 className="text-3xl font-bold text-green-600 mb-4">
+          <div className="text-center py-8">
+            {/* Top Image */}
+            <div className="mb-6 rounded-2xl overflow-hidden bg-gray-200 h-32 flex items-center justify-center">
+              <div className="text-5xl">💼</div>
+            </div>
+
+            {/* Checkmark Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-9 h-9 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
               Day {checkinCount} Completed!
             </h2>
-            <p className="text-gray-600 text-lg mb-6">
-              Great job! Your assessment for day {checkinCount} has been saved.
+
+            {/* Message */}
+            <p className="text-gray-600 text-sm mb-6">
+              Excellent start to your 7-day journey. We've recorded your initial biometrics and behavioral data.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-              <p className="text-gray-700 font-semibold mb-2">⏰ Next Assessment Available:</p>
-              <p className="text-2xl font-bold text-indigo-600 mb-4">{nextAvailableTime}</p>
-              <p className="text-sm text-gray-600">
-                You can submit your next daily assessment after this time.
+
+            {/* Next Session Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-xs font-semibold text-gray-700">NEXT SESSION</p>
+              </div>
+              <p className="text-base font-bold text-blue-600">
+                Visit again in 24 hours at {nextAvailableTime}
               </p>
             </div>
-            <div className="flex gap-4">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition font-semibold text-lg"
-              >
-                Go to Dashboard
-              </button>
-            </div>
+
+            {/* Button */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-semibold text-base flex items-center gap-2 mx-auto"
+            >
+              Redirect to Dashboard →
+            </button>
           </div>
         )}
 
         {/* 7-Day Complete Screen */}
         {submissionSuccess && checkinCount >= 7 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-3xl font-bold text-green-600 mb-4">
+          <div className="text-center py-8">
+            {/* Top Image */}
+            <div className="mb-6 rounded-2xl overflow-hidden bg-gray-200 h-32 flex items-center justify-center">
+              <div className="text-5xl">🎊</div>
+            </div>
+
+            {/* Checkmark Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-9 h-9 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
               All 7 Days Completed!
             </h2>
-            <p className="text-gray-600 text-lg mb-6">
-              Your assessment is complete. Generating your prediction...
+
+            {/* Message */}
+            <p className="text-gray-600 text-sm mb-6">
+              Congratulations! Your assessment is complete. We're analyzing your data and generating your personalized prediction...
             </p>
-            <div className="flex justify-center mb-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+
+            {/* Loading Spinner */}
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
             </div>
           </div>
         )}
         
         {isLocked && !submissionSuccess && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
-            <p className="font-semibold">⏰ {lockMessage}</p>
+          <div className="mb-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start gap-3 mb-4">
+              <span className="text-2xl">⏰</span>
+              <div>
+                <p className="font-semibold text-yellow-900">{lockMessage}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-semibold"
+            >
+              Go to Dashboard
+            </button>
           </div>
         )}
 

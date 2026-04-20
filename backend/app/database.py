@@ -54,7 +54,7 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 def init_db():
-    """Initialize database - create all tables"""
+    """Initialize database - create all tables if they don't exist (preserves data)"""
     from app.models import Base
     
     # Create data directory if using SQLite
@@ -62,11 +62,21 @@ def init_db():
         db_path = Path(DATABASE_URL.replace('sqlite:///', './'))
         db_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Drop and recreate all tables to ensure schema is up to date
-    # This is safe for development but NOT for production with existing data
+    # Only create tables if they don't exist - this preserves existing data
+    # DO NOT drop tables on startup!
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database initialized (existing data preserved)")
+
+def reset_db_dev_only():
+    """
+    DEVELOPMENT ONLY: Drop and recreate all tables
+    WARNING: This deletes all data! Only use for testing.
+    """
+    from app.models import Base
+    print("⚠️  RESETTING DATABASE - ALL DATA WILL BE DELETED!")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    print("✅ Database initialized")
+    print("✅ Database reset complete")
 
 def drop_all_tables():
     """Drop all tables - USE WITH CAUTION"""
