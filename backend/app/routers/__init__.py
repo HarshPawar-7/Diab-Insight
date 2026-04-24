@@ -499,6 +499,20 @@ async def get_recommendations(
         lifestyle_goals=rec_result['lifestyle_goals']
     )
 
+@recommendations_router.get("/swap/{target_food}")
+async def get_food_swap(target_food: str):
+    """Find a healthier alternative to a requested food item"""
+    rec_engine = get_recommendation_engine()
+    result = rec_engine.find_food_swap(target_food)
+    
+    if "error" in result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=result["error"]
+        )
+        
+    return result
+
 # ============================================================
 # DFU DETECTION ENDPOINT (Phase 3)
 # ============================================================

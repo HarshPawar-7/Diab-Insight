@@ -171,6 +171,56 @@ class DiabInsightRecommender:
             "lifestyle_goals": lifestyle_goals
         }
 
+    def find_food_swap(self, target_food: str) -> Dict:
+        """Find a healthier alternative to a requested food item based on GI and health indicators."""
+        if self.foods.empty:
+            return {"error": "Food database unavailable"}
+            
+        # Target food search (case-insensitive partial match)
+        matches = self.foods[self.foods['Food Name'].str.contains(target_food, case=False, na=False)]
+        
+        if matches.empty:
+            return {"error": f"Could not find '{target_food}' in our database to compare."}
+            
+        target = matches.iloc[0]
+        
+        comp_df = self.foods.copy()
+        
+        # Filter away exactly same item
+        diff_mask = comp_df['Food Name'].str.lower() != target['Food Name'].lower()
+        comp_df = comp_df[diff_mask]
+        
+        # Filter for better foods (lower GI)
+        better_mask = comp_df['Glycemic Index'] < target['Glycemic Index']
+        better_options = comp_df[better_mask]
+        
+        if better_options.empty:
+            # Try same GI but more fiber
+            same_gi_mask = (comp_df['Glycemic Index'] == target['Glycemic Index']) & (comp_df['Fiber Content'] > target['Fiber Content'])
+            better_options = comp_df[same_gi_mask]
+            
+            if better_options.empty:
+                 return {"message": f"'{target['Food Name']}' is already a very healthy choice for its index!"}
+             
+        # Sort by lowest GI and highest Fiber
+        better_options = better_options.sort_values(by=['Glycemic Index', 'Fiber Content'], ascending=[True, False])
+        best_swap = better_options.iloc[0]
+        
+        gi_saved = int(target['Glycemic Index'] - best_swap['Glycemic Index']) if not pd.isna(target['Glycemic Index']) and not pd.isna(best_swap['Glycemic Index']) else 0
+        
+        return {
+            "target": {
+                "name": target['Food Name'],
+                "gi": int(target['Glycemic Index']) if not pd.isna(target['Glycemic Index']) else "N/A"
+            },
+            "swap": {
+                "name": best_swap['Food Name'],
+                "gi": int(best_swap['Glycemic Index']) if not pd.isna(best_swap['Glycemic Index']) else "N/A",
+                "reason": f"Saves you {gi_saved} GI points." if gi_saved > 0 else "Better nutritional value with more fiber.",
+                "calories": int(best_swap['Calories']) if not pd.isna(best_swap['Calories']) else 0
+            }
+        }
+
     # Alias to snake_case for consistency
     recommend_foods = recommendFoods = recommend_foods
     recommend_lifestyle = recommendLifestyle = recommend_lifestyle

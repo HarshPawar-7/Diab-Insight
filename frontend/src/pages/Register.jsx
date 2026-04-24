@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import logo from '../assets/logo.svg';
 import { registerUser } from '../services/api';
 import { useUser } from '../contexts/UserContext';
 
@@ -65,7 +66,7 @@ export default function Register() {
 
     try {
       // Validate step 2
-      if (!formData.age || !formData.gender || !formData.ethnicity || !formData.bmi || !formData.employment_status) {
+      if (!formData.age || !formData.gender || !formData.ethnicity || !formData.bmi || !formData.employment_status || !formData.education_level || !formData.income_level || formData.alcohol_consumption_per_week === '') {
         throw new Error('Please fill in all required fields');
       }
 
@@ -106,6 +107,12 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
       <div className="w-full max-w-lg lg:max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
         <div className="mb-8">
+          <div className="flex flex-col items-center justify-center gap-3 mb-6">
+            <img src={logo} alt="Diab-Insight Logo" className="h-16 w-auto" />
+          </div>
+          <div className="flex flex-col items-center justify-center gap-3 mb-6">
+            <img src={logo} alt="Diab-Insight Logo" className="h-16 w-auto" />
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Account</h1>
           <p className="text-gray-600">
             {step === 1
@@ -341,19 +348,21 @@ export default function Register() {
                 value={formData.alcohol_consumption_per_week}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                required
               />
             </div>
 
             {/* Education Level */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Education Level
+                Education Level <span className="text-red-500">*</span>
               </label>
               <select
                 name="education_level"
                 value={formData.education_level}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                required
               >
                 <option value="">Select education level</option>
                 <option value="High School">High School</option>
@@ -366,13 +375,14 @@ export default function Register() {
             {/* Income Level */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Income Level
+                Income Level <span className="text-red-500">*</span>
               </label>
               <select
                 name="income_level"
                 value={formData.income_level}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                required
               >
                 <option value="">Select income level</option>
                 <option value="Low">Low (&lt;$25k)</option>

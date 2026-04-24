@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { getCheckinHistory, getPredictionHistory } from '../services/api';
+import logo from '../assets/logo.svg';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -118,7 +119,10 @@ export default function Dashboard() {
       <nav className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 mb-0">
-            <h1 className="text-xl font-bold text-blue-600">DiabInsight</h1>
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="Diab-Insight Logo" className="h-8 w-auto" />
+              <h1 className="text-xl font-bold text-blue-600">Diab-Insight</h1>
+            </div>
             
             {/* Navigation Links with Tab Indicator */}
             <div className="hidden md:flex gap-0">

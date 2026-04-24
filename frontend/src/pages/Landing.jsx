@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import logo from '../assets/logo.svg';
 import DashboardProject from '../assets/DashboardProject.png';
 import HeroVideo from '../assets/HeroVideo.mp4';
 
@@ -21,7 +22,10 @@ export default function Landing() {
       <nav className="sticky top-0 bg-white shadow-sm z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-bold text-blue-600">DiabInsight</h1>
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="Diab-Insight Logo" className="h-8 w-auto" />
+              <h1 className="text-xl font-bold text-blue-600">Diab-Insight</h1>
+            </div>
             
             {/* Center Navigation Links */}
             <div className="hidden md:flex gap-8">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import logo from '../assets/logo.svg';
 import { loginUser } from '../services/api';
 import { useUser } from '../contexts/UserContext';
 
@@ -37,6 +38,7 @@ export default function Login() {
 
       // Store user data
       setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('user_id', userData.user_id);
       localStorage.setItem('email', userData.email);
 
@@ -55,6 +57,9 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 md:py-8 lg:py-6 md:py-8 lg:py-12 px-4">
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
         <div className="mb-8">
+          <div className="flex flex-col items-center justify-center gap-3 mb-6">
+            <img src={logo} alt="Diab-Insight Logo" className="h-16 w-auto" />
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
           <p className="text-gray-600">Sign in to your DIABINSIGHT account</p>
         </div>

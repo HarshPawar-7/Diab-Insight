@@ -3,26 +3,26 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('user');
+      const savedUserId = localStorage.getItem('user_id');
+      if (savedUser && savedUserId) {
+        return JSON.parse(savedUser);
+      }
+    } catch (e) {
+      console.error('Failed to parse saved user:', e);
+      localStorage.removeItem('user');
+      localStorage.removeItem('user_id');
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [checkinDays, setCheckinDays] = useState(0);
   const [predictions, setPredictions] = useState([]);
 
-  // Initialize from localStorage
-  useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedUserId = localStorage.getItem('user_id');
-    if (savedUser && savedUserId) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Failed to parse saved user:', e);
-        localStorage.removeItem('user');
-        localStorage.removeItem('user_id');
-      }
-    }
-  }, []);
+  // Note: Removed the empty useEffect doing the same parsing, mapped default state above to prevent ProtectedRoute flashes
 
   const registerUser = (userData) => {
     setUser(userData);

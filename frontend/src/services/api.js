@@ -22,10 +22,11 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Only redirect if it's a 401 and NOT from the login route
+    if (error.response?.status === 401 && !error.config?.url?.includes('/users/login')) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_id');
-      window.location.href = '/register';
+//      window.location.href = '/register'; // Disabled so we don't violently eject users out of the UI
     }
     return Promise.reject(error);
   }
@@ -49,6 +50,7 @@ export const getPredictionHistory = (userId) => apiClient.get(`/predict/history/
 
 // Recommendations endpoint
 export const getRecommendations = (userId) => apiClient.get(`/recommendations/${userId}`);
+export const getFoodSwap = (targetFood) => apiClient.get(`/recommendations/swap/${targetFood}`);
 
 // DFU scan endpoints
 export const uploadDFUScan = (userId, imageFile) => {
